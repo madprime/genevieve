@@ -1,0 +1,6 @@
+# Compiled python
+*.pyc
+
+# Local files
+.env
+db.sqlite3
