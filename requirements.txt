@@ -11,3 +11,5 @@ tini==3.0.1
 
 # our VCF to ClinVar matching tool
 https://github.com/PersonalGenomesOrg/vcf2clinvar/archive/master.zip
+# Complete Genomics var file to VCF format conversion (lossy)
+https://github.com/madprime/cgivar2vcf/archive/master.zip

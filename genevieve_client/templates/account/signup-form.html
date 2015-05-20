@@ -1,0 +1,106 @@
+<div class="row">
+  <div class="col-sm-offset-2 col-sm-8">
+    <p>
+      Use the form below to create an account on this Genevieve app. Data
+      for an individual genome are associated with the account that uploaded
+      it, and are not available to other users of this deployment.
+    </p>
+  </div>
+</div>
+
+<form class="form-horizontal" role="form" method="POST"
+    action="{% url 'account_signup' %}" id="signup-form">
+
+  {% csrf_token %}
+
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}"
+    value="{{ redirect_field_value }}" />
+  {% endif %}
+
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}
+      {{ error }}<br>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="form-group{% if form.username.errors %} has-error{% endif %}">
+    <label for="id_username" class="col-sm-2 control-label">Username</label>
+
+    <div class="col-sm-8">
+      <input type="text" class="form-control" name="username" id="id_username"
+        autofocus="autofocus" maxlength="30" placeholder="Username"
+        value="{{ form.username.value|default:'' }}">
+
+      {% if form.username.errors %}
+        {% for error in form.username.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+    <label for="email-address" class="col-sm-2 control-label">Email</label>
+
+    <div class="col-sm-8">
+      <input type="email" class="form-control" name="email" id="email-address"
+        placeholder="Email" value="{{ form.email.value|default:'' }}">
+
+      {% if form.email.errors %}
+        {% for error in form.email.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group{% if form.password1.errors %} has-error{% endif %}">
+    <label for="signup-password" class="col-sm-2 control-label">Password</label>
+
+    <div class="col-sm-8">
+      <input type="password" class="form-control" name="password1"
+        id="signup-password" placeholder="Password"
+        value="{{ form.password1.value|default:'' }}">
+
+      {% if form.password1.errors %}
+        {% for error in form.password1.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group{% if form.password2.errors %} has-error{% endif %}">
+    <label for="signup-password-confirm" class="col-sm-2 control-label">
+      Confirm password
+    </label>
+
+    <div class="col-sm-8">
+      <input type="password" class="form-control" name="password2"
+        id="signup-password-confirm" placeholder="Password"
+        value="{{ form.password2.value|default:'' }}">
+
+      {% if form.password2.errors %}
+        {% for error in form.password2.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <p>
+        <button type="submit" class="btn btn-default">Create account</button>
+      </p>
+      <p>
+        <a href="{% url 'account_login' %}">
+          Already have an account? Click here to log in.</a>
+      </p>
+    </div>
+  </div>
+
+</form>

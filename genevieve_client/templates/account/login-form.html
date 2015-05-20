@@ -1,0 +1,64 @@
+<form class="form-horizontal" role="form" method="POST"
+    action="{% url 'account_login' %}" id="login-form">
+
+  {% csrf_token %}
+
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}"
+    value="{{ redirect_field_value }}" />
+  {% endif %}
+
+  {% if form.errors %}
+  <div class="alert alert-danger">
+    <p>
+      <strong>Error:</strong> The password didn't match the username or email
+      you provided. Please try again.
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="form-group{% if form.login.errors %} has-error{% endif %}">
+    <label for="login-email"
+      class="col-sm-2 control-label">Username or Email</label>
+
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="login"
+        id="login-email" placeholder="your_email@example.com"
+        value="{{ form.login.value|default:'' }}">
+      {% if form.login.errors %}
+        {% for error in form.login.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group{% if form.password.errors %} has-error{% endif %}">
+    <label for="login-password"
+      class="col-sm-2 control-label">Password</label>
+
+    <div class="col-sm-10">
+      <input type="password" class="form-control" name="password"
+        id="login-password" placeholder="Password"
+        value="{{ form.password.value|default:'' }}">
+      {% if form.password.errors %}
+        {% for error in form.password.errors %}
+        <span class="help-block">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <p>
+        <button type="submit" class="btn btn-default">Sign in</button>
+      </p>
+      <p>
+        <a href="{% url 'account_reset_password' %}">
+          Forgot your password?</a>
+      </p>
+    </div>
+  </div>
+
+</form>

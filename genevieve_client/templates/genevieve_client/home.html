@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+
+{% block main %}
+<h1>Genevieve</h1>
+
+{% if user.is_authenticated %}
+<p>
+  Welcome!
+</p>
+{% else %}
+<a href="{% url 'account_login' %}" class="btn btn-default">Log in</a>
+<a href="{% url 'account_signup' %}" class="btn btn-default">Create account</a>
+{% endif %}
+
+{% endblock main %}
