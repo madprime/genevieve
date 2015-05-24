@@ -127,6 +127,16 @@ USE_TZ = True
 SITE_ID = 1
 
 
+# Email set up.
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', global_settings.EMAIL_BACKEND)
+EMAIL_USE_TLS = to_bool('EMAIL_USE_TLS', str(global_settings.EMAIL_USE_TLS))
+EMAIL_HOST = os.getenv('EMAIL_HOST', global_settings.EMAIL_HOST)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', global_settings.EMAIL_HOST_USER)
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD',
+                                global_settings.EMAIL_HOST_PASSWORD)
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', str(global_settings.EMAIL_PORT)))
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 STATIC_URL = '/static/'
