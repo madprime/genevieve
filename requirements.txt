@@ -1,14 +1,27 @@
+Cython==0.22
 Django==1.8
+Pygments==2.0.2
+amqp==1.4.6
+anyjson==0.3.3
+argparse==1.2.1
+billiard==3.3.0.20
+blessings==1.6
+bpython==0.14.1
+celery==3.1.18
 configparser==3.5.0b2
+curtsies==0.1.19
 django-allauth==0.19.1
 env-tools==2.0.0
+greenlet==0.4.7
+kombu==3.0.26
 oauthlib==0.7.2
 python-openid==2.2.5
+pytz==2015.4
 requests==2.7.0
 requests-oauthlib==0.5.0
 six==1.9.0
 tini==3.0.1
-
+wsgiref==0.1.2
 # our VCF to ClinVar matching tool
 https://github.com/PersonalGenomesOrg/vcf2clinvar/archive/master.zip
 # Complete Genomics var file to VCF format conversion (lossy)

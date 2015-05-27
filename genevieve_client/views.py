@@ -5,6 +5,7 @@ from django.views.generic.edit import FormView
 
 from .models import GenomeReport
 from .forms import GenomeUploadForm
+from .tasks import produce_genome_report
 
 
 class GenomeImportView(FormView):
@@ -24,5 +25,6 @@ class GenomeImportView(FormView):
             report_name=form.cleaned_data['report_name'],
             genome_format=form.cleaned_data['genome_format'])
         new_report.save()
+        produce_genome_report.delay(genome_report=new_report)
         # Insert calling celery task for genome processing here.
         return super(GenomeImportView, self).form_valid(form)

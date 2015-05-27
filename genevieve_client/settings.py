@@ -136,8 +136,10 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD',
                                 global_settings.EMAIL_HOST_PASSWORD)
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', str(global_settings.EMAIL_PORT)))
 
+# Where to locally store files
+LOCAL_STORAGE_ROOT = os.path.join(BASE_DIR, 'files/')
 # Where to store uploaded files
-MEDIA_ROOT = os.path.join(BASE_DIR, 'files/upload/')
+MEDIA_ROOT = os.path.join(LOCAL_STORAGE_ROOT, 'upload/')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
@@ -153,5 +155,8 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
+
+# Site admin settings
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL')
 
 LOGIN_REDIRECT_URL = 'home'
