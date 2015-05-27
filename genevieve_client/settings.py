@@ -136,6 +136,8 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD',
                                 global_settings.EMAIL_HOST_PASSWORD)
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', str(global_settings.EMAIL_PORT)))
 
+# Where to store uploaded files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'files/upload/')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/

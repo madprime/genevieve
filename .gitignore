@@ -4,3 +4,4 @@
 # Local files
 .env
 db.sqlite3
+files/*
