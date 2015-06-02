@@ -24,7 +24,6 @@ def setup_twobit_file():
         os.makedirs(local_storage)
     twobit_filepath = os.path.join(local_storage, 'hg19.2bit')
     if not os.path.exists(twobit_filepath):
-        print "Getting 2bit ref"
         with open(twobit_filepath, 'w') as fh:
             ftp = FTP('hgdownload.cse.ucsc.edu')
             ftp.login(user='anonymous', passwd=settings.SUPPORT_EMAIL)
@@ -38,7 +37,6 @@ def setup_clinvar_file():
                                  'genome_processing_files')
     if not os.path.exists(local_storage):
         os.makedirs(local_storage)
-    print "Getting clinvar file"
     clinvar_filepath = clinvar_update.get_latest_vcf_file(
         target_dir=local_storage, build='b37')
     if clinvar_filepath.endswith('.bz2'):
