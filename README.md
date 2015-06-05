@@ -23,6 +23,10 @@ install personal copies of this web app.
   * Set your `SECRET_KEY` with a random string.
   * Set `SUPPORT_EMAIL`. (Used to log in to UCSC's FTP site, and may be used in other contexts.)
   * Set up email. The easiest for development purposes is probably: `EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"`
+* **Install RabbitMQ for messaging**
+  * In Debian/Ubuntu:
+    * `sudo apt-get install rabbitmq-server`
+    * Ubuntu should automatically start the server, but in case that doesn't happen: You can stop the server with `sudo rabbitmqctl stop` and start it running in the background with `sudo rabbitmq-server --detached`.
 * **Initialize the database:** `python manage.py migrate`
 * **Run celery:** In one window, run celery (used for genome processing): `celery -A genevieve_client worker -l info`
 * **Run the web server:** In another window, run: `python manage.py runserver`
