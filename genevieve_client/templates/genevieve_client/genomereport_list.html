@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Your genome reports</h2>
+
+<table class="table">
+  <tr>
+    <th>Report name</th>
+    <th>Genome format</th>
+  </tr>
+{% for report in genomereport_list %}
+  <tr>
+    <td>{{ report.report_name }}</td>
+    <td>{{ report.get_genome_format_display }}</td>
+  </tr>
+{% endfor %}
+</table>
+
+{% endblock %}

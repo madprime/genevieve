@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.generic.edit import FormView
+from django.views.generic.list import ListView
 
 from .models import GenomeReport
 from .forms import GenomeUploadForm
@@ -28,3 +29,15 @@ class GenomeImportView(FormView):
         produce_genome_report.delay(genome_report=new_report)
         # Insert calling celery task for genome processing here.
         return super(GenomeImportView, self).form_valid(form)
+
+
+class GenomeReportListView(ListView):
+    model = GenomeReport
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(GenomeReportListView, self).dispatch(*args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super(GenomeReportListView, self).get_queryset()
+        return queryset.filter(user=self.request.user)
