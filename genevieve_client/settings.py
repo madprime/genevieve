@@ -48,6 +48,7 @@ INSTALLED_APPS = (
     # Third party apps
     'allauth',
     'allauth.account',
+    'debug_toolbar',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
