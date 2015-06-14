@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block js_scripts %}
+<script src="/static/js/genomereport_detail.js"></script>
+{% endblock js_scripts %}
+
+{% block content %}
+<h2>{{ genomereport.report_name }}</h2>
+
+<table class="table">
+  <tr>
+    <th width="120px">Variant</th>
+    <th width="120px">Zygosity</th>
+    <th>Info</th>
+  </tr>
+
+  {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
+  <tr class="gv-row" id="gv-{{ gv.variant.b37_id }}">
+    <td>{{ gv.variant.b37_id }}</td>
+    <td>{{ gv.get_zygosity_display }}</td>
+    <td class="gv-info-cell"></td>
+  </tr>
+  {% endfor %}
+
+</table>
+{% endblock content %}
+
+
+{% block js_templates %}
+<!-- Display of retrieved ReferenceClinVarAssertion data from GenNotes -->
+<script type="text/template" id="variant-data-template">
+  <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
+    ${ clinvarRCVAAccession }</a></b>
+  <ul>
+    <li><b>Disease: </b>${ clinvarRCVADiseaseName }</li>
+    <li><b>Significance: </b>${ clinvarRCVASignificance }</li>
+  </ul>
+</script>
+{% endblock js_templates %}

@@ -5,6 +5,19 @@
     <title>{% block head_title %}Genevieve{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+    <!-- Lodash, added to allow us to use templates -->
+    <script src="/static/vendor/js/lodash.min.js"></script>
+
     <!-- Set up Bootstrap 3 using MaxCDN links. -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
@@ -13,6 +26,8 @@
     <!-- Override Bootstrap with local styles when we have them, e.g.:
     <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
     -->
+    {% block js_scripts %}
+    {% endblock %}
   </head>
 
   <body>
@@ -35,7 +50,7 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="navbar-main-collapse">
           <ul class="nav navbar-nav">
-            <li><a href="{% url 'genome_reports' %}">Genome reports</a></li>
+            <li><a href="{% url 'genome_report_list' %}">Genome reports</a></li>
             <!-- Fill this with menu items as needed.
             <li><a href="#">Link</a></li>
             -->
@@ -58,5 +73,7 @@
       {% endblock content %}
     </div>
 
+    {% block js_templates %}
+    {% endblock %}
   </body>
 </html>

@@ -9,12 +9,15 @@
     <th>Report name</th>
     <th>Genome format</th>
   </tr>
-{% for report in genomereport_list %}
+
+  {% for report in genomereport_list %}
   <tr>
-    <td>{{ report.report_name }}</td>
+    <td><a href="{% url 'genome_report_detail' report.pk %}">
+      {{ report.report_name }}</a></td>
     <td>{{ report.get_genome_format_display }}</td>
   </tr>
-{% endfor %}
+  {% endfor %}
+
 </table>
 
 {% endblock %}

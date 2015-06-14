@@ -1,8 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse_lazy
 from django.utils.decorators import method_decorator
-from django.views.generic.edit import FormView
-from django.views.generic.list import ListView
+from django.views.generic import DetailView, FormView, ListView
 
 from .models import GenomeReport
 from .forms import GenomeUploadForm
@@ -39,5 +38,19 @@ class GenomeReportListView(ListView):
         return super(GenomeReportListView, self).dispatch(*args, **kwargs)
 
     def get_queryset(self):
+        """Only list reports belonging to this user."""
         queryset = super(GenomeReportListView, self).get_queryset()
+        return queryset.filter(user=self.request.user)
+
+
+class GenomeReportDetailView(DetailView):
+    model = GenomeReport
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(GenomeReportDetailView, self).dispatch(*args, **kwargs)
+
+    def get_queryset(self):
+        """Return object info only if this report belongs to this user."""
+        queryset = super(GenomeReportDetailView, self).get_queryset()
         return queryset.filter(user=self.request.user)

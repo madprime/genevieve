@@ -71,6 +71,19 @@ def produce_genome_report(genome_report):
         pos = genome_vcf_line.start
         ref_allele = genome_vcf_line.ref_allele
         var_allele = allele.sequence
+
+        # Only record if has significance that isn't "not provided", "benign",
+        # "likely benign", or "other".
+        sigs = [r.sig for r in allele.records if
+                r.sig != '1' and r.sig != '2' and
+                r.sig != '3' and r.sig != '255']
+        if not sigs:
+            continue
+        # Only record if a report with a disease name exists.
+        dbns = [r.dbn for r in allele.records if r.dbn != 'not_provided']
+        if not dbns:
+            continue
+
         variant, _ = Variant.objects.get_or_create(chromosome=chrom,
                                                    pos=pos,
                                                    ref_allele=ref_allele,

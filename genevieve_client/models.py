@@ -45,6 +45,11 @@ class Variant(models.Model):
     ref_allele = models.CharField(max_length=255)
     var_allele = models.CharField(max_length=255)
 
+    @property
+    def b37_id(self):
+        return '-'.join([str(x) for x in [self.chromosome, self.pos,
+                                          self.ref_allele, self.var_allele]])
+
 
 class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)

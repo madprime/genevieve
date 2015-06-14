@@ -2,7 +2,9 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
 
-from .views import GenomeImportView, GenomeReportListView
+from .views import (GenomeImportView,
+                    GenomeReportDetailView,
+                    GenomeReportListView)
 
 urlpatterns = [
     # Examples:
@@ -14,7 +16,9 @@ urlpatterns = [
         name='home'),
     url(r'genome_import/', GenomeImportView.as_view(), name='genome_import'),
     url(r'genome_reports/$', GenomeReportListView.as_view(),
-        name='genome_reports'),
+        name='genome_report_list'),
+    url(r'genome_report/(?P<pk>[0-9]+)/$', GenomeReportDetailView.as_view(),
+        name='genome_report_detail'),
 
     url(r'^admin/', include(admin.site.urls)),
 

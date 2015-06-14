@@ -49,6 +49,7 @@ INSTALLED_APPS = (
     'allauth',
     'allauth.account',
     'debug_toolbar',
+    'template_timings_panel',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -161,3 +162,10 @@ ACCOUNT_EMAIL_VERIFICATION = 'optional'
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL')
 
 LOGIN_REDIRECT_URL = 'home'
+
+# Django debug toolbar settings
+# http://django-debug-toolbar.readthedocs.org/en/latest/configuration.html#debug-toolbar-panels
+DEBUG_TOOLBAR_PANELS = [
+    'debug_toolbar.panels.sql.SQLPanel',
+    'template_timings_panel.panels.TemplateTimings.TemplateTimings',
+]
