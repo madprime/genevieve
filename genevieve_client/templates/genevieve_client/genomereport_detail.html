@@ -10,13 +10,15 @@
 <table class="table">
   <tr>
     <th width="120px">Variant</th>
-    <th width="120px">Zygosity</th>
+    <th width="120px">Allele Freq</th>
+    <th width="120px">Zyg</th>
     <th>Info</th>
   </tr>
 
   {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
   <tr class="gv-row" id="gv-{{ gv.variant.b37_id }}">
-    <td>{{ gv.variant.b37_id }}</td>
+    <td class="gv-id-cell">{{ gv.variant.b37_id }}</td>
+    <td class="gv-freq-cell">Unknown</td>
     <td>{{ gv.get_zygosity_display }}</td>
     <td class="gv-info-cell"></td>
   </tr>
@@ -28,7 +30,16 @@
 
 {% block js_templates %}
 <!-- Display of retrieved ReferenceClinVarAssertion data from GenNotes -->
-<script type="text/template" id="variant-data-template">
+<script type="text/template" id="variant-id-template">
+  <b>${ clinvarRCVAPreferredName }</b><br>
+  <small><b>b37 ID:</b> ${ b37VariantID }</small>
+</script>
+
+<script type="text/template" id="variant-freq-template">
+  ${ clinvarRCVAfreqESP }
+</script>
+
+<script type="text/template" id="variant-info-template">
   <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
     ${ clinvarRCVAAccession }</a></b>
   <ul>
