@@ -9,6 +9,12 @@ Genevieve processes full genome data to produce reports &ndash; because this
 data is potentially private and sensitive, we'd like to enable others to
 install personal copies of this web app.
 
+## Examples
+
+**Note: Genevieve is under active development! This isn't the final feature set, it's progress we've made so far.**
+
+- [Genome report screenshot](https://cloud.githubusercontent.com/assets/82631/8336384/13b34ae4-1a72-11e5-8e84-bc47a62ca060.png) - most data in this report was retrieved from GenNotes and loaded via a Javascript
+
 ## Local installation/development set-up
 
 *Improvements to these instructions encouraged!*
