@@ -1,4 +1,4 @@
-var add_id_data = function (b37ID, clinvarRelationsData, template, elem) {
+var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
   var varNameString = ''
   var varNames = []
   clinvarRelationsData.forEach(function (clinvarData) {
@@ -22,9 +22,10 @@ var add_id_data = function (b37ID, clinvarRelationsData, template, elem) {
   })
   elem.append(templated)
   // console.log(elem)
+  return [varNameString, b37ID]
 }
 
-var add_freq_data = function (clinvarRelationsData, template, elem) {
+var addFreqData = function (clinvarRelationsData, template, elem) {
   var frequencies = []
   clinvarRelationsData.forEach(function (clinvarData) {
     if ('clinvar-rcva:esp-allele-frequency' in clinvarData) {
@@ -34,29 +35,44 @@ var add_freq_data = function (clinvarRelationsData, template, elem) {
     }
   })
   // console.log(frequencies)
-  var templated
+  var frequency
   if (frequencies.length === 0) {
-    templated = template({clinvarRCVAfreqESP: 'Unknown'})
+    frequency = 'Unknown'
   } else {
-    templated = template({clinvarRCVAfreqESP: frequencies[0]})
+    frequency = frequencies[0]
   }
+  var templated = template({clinvarRCVAfreqESP: frequency})
   elem.append(templated)
   // console.log(elem)
+  return [frequency]
 }
 
-var add_info_data = function (clinvarRelationsData, template, elem) {
+var addInfoData = function (clinvarRelationsData, template, elem) {
+  var returnData = []
   clinvarRelationsData.forEach(
     function (clinvarData) {
+      var traitType = clinvarData['clinvar-rcva:trait-type']
+      var traitLabel
+      if (traitType === 'Disease') {
+        traitLabel = 'Disease'
+      } else {
+        traitLabel = 'Trait'
+      }
       var templated = template({
+        clinvarTraitLabel: traitLabel,
         clinvarRCVAAccession: clinvarData['clinvar-rcva:accession'],
-        clinvarRCVADiseaseName: clinvarData['clinvar-rcva:disease-name'],
+        clinvarRCVADiseaseName: clinvarData['clinvar-rcva:trait-name'],
         clinvarRCVASignificance: clinvarData['clinvar-rcva:significance']
       })
       // console.log(templated)
       elem.append(templated)
+      returnData.append([traitLabel, clinvarData['clinvar-rcva:accession'],
+              clinvarData['clinvar-rcva:trait-name'],
+              clinvarData['clinvar-rcva:significance']])
     }
   )
   // console.log(elem)
+  return returnData
 }
 
 var add_gennotes_data = function (data, textStatus, jqXHR) {
@@ -90,9 +106,9 @@ var add_gennotes_data = function (data, textStatus, jqXHR) {
     }
 
     // console.log('Adding ClinVar data')
-    add_id_data(result['b37_id'], clinvarRelationsData, templateVariantID, elemGVID)
-    add_freq_data(clinvarRelationsData, templateVariantFreq, elemGVFreq)
-    add_info_data(clinvarRelationsData, templateVariantInfo, elemGVInfo)
+    var idData = addIdData(result['b37_id'], clinvarRelationsData, templateVariantID, elemGVID)
+    var freqData = addFreqData(clinvarRelationsData, templateVariantFreq, elemGVFreq)
+    var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
   }
 }
 
@@ -101,11 +117,7 @@ $(function () {
     return $(this).attr('id').substring(3)
   }).toArray()
   // console.log(variantList)
-  var variantListJSON = JSON.stringify(
-    variantList.map(function (v) {
-        return 'b37-' + v
-      })
-    )
+  var variantListJSON = JSON.stringify(variantList)
   // console.log(variantListJSON)
   $.ajax(
     {

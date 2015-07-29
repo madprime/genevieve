@@ -16,7 +16,7 @@
   </tr>
 
   {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
-  <tr class="gv-row" id="gv-{{ gv.variant.b37_id }}">
+  <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
     <td class="gv-id-cell">{{ gv.variant.b37_id }}</td>
     <td class="gv-freq-cell">Unknown</td>
     <td>{{ gv.get_zygosity_display }}</td>
@@ -43,7 +43,7 @@
   <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
     ${ clinvarRCVAAccession }</a></b>
   <ul>
-    <li><b>Disease: </b>${ clinvarRCVADiseaseName }</li>
+    <li><b>${ clinvarTraitLabel }: </b>${ clinvarRCVADiseaseName }</li>
     <li><b>Significance: </b>${ clinvarRCVASignificance }</li>
   </ul>
 </script>
