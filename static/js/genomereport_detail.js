@@ -22,7 +22,7 @@ var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
   })
   elem.append(templated)
   // console.log(elem)
-  return [varNameString, b37ID]
+  return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37ID]
 }
 
 var addFreqData = function (clinvarRelationsData, template, elem) {
@@ -66,7 +66,7 @@ var addInfoData = function (clinvarRelationsData, template, elem) {
       })
       // console.log(templated)
       elem.append(templated)
-      returnData.append([traitLabel, clinvarData['clinvar-rcva:accession'],
+      returnData.push([traitLabel, clinvarData['clinvar-rcva:accession'],
               clinvarData['clinvar-rcva:trait-name'],
               clinvarData['clinvar-rcva:significance']])
     }
@@ -75,7 +75,22 @@ var addInfoData = function (clinvarRelationsData, template, elem) {
   return returnData
 }
 
-var add_gennotes_data = function (data, textStatus, jqXHR) {
+var asCSVContent = function (idData, freqData, infoData) {
+  var csvContent = ''
+  for (var i = 0; i < infoData.length; i++) {
+    var infoDataItem = infoData[i]
+    var data = idData.concat(freqData).concat(infoDataItem).map(function (e) {
+      return '"' + e + '"'
+    })
+    csvContent += data.join(',') + '\n'
+  }
+  return csvContent
+}
+
+var addGennotesData = function (data, textStatus, jqXHR) {
+  // Build a CSV version of the data for download.
+  var csvContent = ''
+
   for (var i = 0; i < data['results'].length; i++) {
     var result = data['results'][i]
     // console.log(result['b37_id'])
@@ -109,7 +124,18 @@ var add_gennotes_data = function (data, textStatus, jqXHR) {
     var idData = addIdData(result['b37_id'], clinvarRelationsData, templateVariantID, elemGVID)
     var freqData = addFreqData(clinvarRelationsData, templateVariantFreq, elemGVFreq)
     var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
+
+    csvContent += asCSVContent(idData, freqData, infoData)
   }
+
+  // Add CSV download link.
+  // console.log("Adding CSV data as link:")
+  // console.log(csvContent)
+  var downloadCSVDiv = $('div#download-as-csv').empty()
+  var downloadCSVLink = $('<a>Download as CSV file</a>')
+    .attr('href', 'data:text/csv;charset=utf8,' + encodeURIComponent(csvContent))
+    .attr('download', 'report.csv')
+  downloadCSVDiv.append(downloadCSVLink)
 }
 
 $(function () {
@@ -124,7 +150,7 @@ $(function () {
       url: 'http://gennotes.herokuapp.com/api/variant/',
       dataType: 'json',
       data: {'variant_list': variantListJSON, 'page_size': 100},
-      success: add_gennotes_data
+      success: addGennotesData
     }
   )
 })
