@@ -1,3 +1,16 @@
+var guessGETEvidenceID = function (clinvarName) {
+  var reFS = /\((.*?)\):.*?\(p\.(.*?[0-9]+)[A-Z][a-z][a-z]fs\)/
+  var matchFS = reFS.exec(clinvarName)
+  var reAASub = /\((.*?)\):.*?\(p\.([A-Za-z]+[0-9]+[A-Za-z]+)\)/
+  var matchAASub = reAASub.exec(clinvarName)
+  if (matchFS != null) {
+    return matchFS[1] + '-' + matchFS[2] + 'Shift'
+  } else if (matchAASub != null) {
+    return matchAASub[1] + '-' + matchAASub[2].replace('Ter', 'Stop')
+  }
+  return ''
+}
+
 var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
   var varNameString = ''
   var varNames = []
@@ -8,24 +21,27 @@ var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
     if (varNameString) {
       // If this name already listed, don't output again.
       if (_.contains(varNames, prefName)) return
-      varNameString = varNameString + '<br><small>or</small><br><b>' +
-                      prefName + '</b>'
+      varNameString = varNameString + '</b><br><small>or</small><br><b>' +
+                      prefName
     } else {
-      varNameString = '<b>' + clinvarData['clinvar-rcva:preferred-name']
+      varNameString = clinvarData['clinvar-rcva:preferred-name']
     }
     varNames.push(prefName)
   })
   // console.log(varNames)
+  var getevID = guessGETEvidenceID(clinvarRelationsData[0]['clinvar-rcva:preferred-name'])
+  var getevLink = 'http://evidence.pgp-hms.org/' + getevID
   var templated = template({
     clinvarRCVAPreferredName: varNameString,
-    b37VariantID: b37ID
+    b37VariantID: b37ID,
+    linkGETEvidence: getevLink
   })
   elem.append(templated)
   // console.log(elem)
-  return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37ID]
+  return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37ID, getevLink]
 }
 
-var addFreqData = function (clinvarRelationsData, template, elem) {
+var addFreqData = function (b37ID, clinvarRelationsData, template, elem) {
   var frequencies = []
   clinvarRelationsData.forEach(function (clinvarData) {
     if ('clinvar-rcva:esp-allele-frequency' in clinvarData) {
@@ -41,10 +57,14 @@ var addFreqData = function (clinvarRelationsData, template, elem) {
   } else {
     frequency = frequencies[0]
   }
-  var templated = template({clinvarRCVAfreqESP: frequency})
+  linkExAC = 'http://exac.broadinstitute.org/variant/' + b37ID.substring(4)
+  var templated = template({
+    clinvarRCVAfreqESP: frequency,
+    linkExAC: linkExAC
+  })
   elem.append(templated)
   // console.log(elem)
-  return [frequency]
+  return [frequency, linkExAC]
 }
 
 var addInfoData = function (clinvarRelationsData, template, elem) {
@@ -66,9 +86,12 @@ var addInfoData = function (clinvarRelationsData, template, elem) {
       })
       // console.log(templated)
       elem.append(templated)
-      returnData.push([traitLabel, clinvarData['clinvar-rcva:accession'],
-              clinvarData['clinvar-rcva:trait-name'],
-              clinvarData['clinvar-rcva:significance']])
+      returnData.push([
+        traitLabel,
+        clinvarData['clinvar-rcva:accession'],
+        clinvarData['clinvar-rcva:trait-name'],
+        clinvarData['clinvar-rcva:significance']
+      ])
     }
   )
   // console.log(elem)
@@ -122,7 +145,7 @@ var addGennotesData = function (data, textStatus, jqXHR) {
 
     // console.log('Adding ClinVar data')
     var idData = addIdData(result['b37_id'], clinvarRelationsData, templateVariantID, elemGVID)
-    var freqData = addFreqData(clinvarRelationsData, templateVariantFreq, elemGVFreq)
+    var freqData = addFreqData(result['b37_id'], clinvarRelationsData, templateVariantFreq, elemGVFreq)
     var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
 
     csvContent += asCSVContent(idData, freqData, infoData)
@@ -132,9 +155,10 @@ var addGennotesData = function (data, textStatus, jqXHR) {
   // console.log("Adding CSV data as link:")
   // console.log(csvContent)
   var downloadCSVDiv = $('div#download-as-csv').empty()
+  var filenameCSV = $('#report-name').text() + '.csv'
   var downloadCSVLink = $('<a>Download as CSV file</a>')
     .attr('href', 'data:text/csv;charset=utf8,' + encodeURIComponent(csvContent))
-    .attr('download', 'report.csv')
+    .attr('download', filenameCSV)
   downloadCSVDiv.append(downloadCSVLink)
 }
 

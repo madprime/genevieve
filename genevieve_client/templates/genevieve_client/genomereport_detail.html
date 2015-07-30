@@ -5,7 +5,7 @@
 {% endblock js_scripts %}
 
 {% block content %}
-<h2>{{ genomereport.report_name }}</h2>
+<h2 id="report-name">{{ genomereport.report_name }}</h2>
 
 <div id="download-as-csv"></div>
 
@@ -34,11 +34,13 @@
 <!-- Display of retrieved ReferenceClinVarAssertion data from GenNotes -->
 <script type="text/template" id="variant-id-template">
   <b>${ clinvarRCVAPreferredName }</b><br>
-  <small><b>b37 ID:</b> ${ b37VariantID }</small>
+  <small><b>b37 ID:</b> ${ b37VariantID }</small><br>
+  <small><a href="${ linkGETEvidence }">Check on GET-Evidence</a></small>
 </script>
 
 <script type="text/template" id="variant-freq-template">
-  ${ clinvarRCVAfreqESP }
+  ${ clinvarRCVAfreqESP }<br>
+  <small><a href="${ linkExAC }">Check on ExAC</a></small>
 </script>
 
 <script type="text/template" id="variant-info-template">
