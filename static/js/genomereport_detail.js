@@ -1,17 +1,17 @@
-var guessGETEvidenceID = function (clinvarName) {
+function guessGETEvidenceID (clinvarName) {
   var reFS = /\((.*?)\):.*?\(p\.(.*?[0-9]+)[A-Z][a-z][a-z]fs\)/
   var matchFS = reFS.exec(clinvarName)
   var reAASub = /\((.*?)\):.*?\(p\.([A-Za-z]+[0-9]+[A-Za-z]+)\)/
   var matchAASub = reAASub.exec(clinvarName)
-  if (matchFS != null) {
+  if (matchFS !== null) {
     return matchFS[1] + '-' + matchFS[2] + 'Shift'
-  } else if (matchAASub != null) {
+  } else if (matchAASub !== null) {
     return matchAASub[1] + '-' + matchAASub[2].replace('Ter', 'Stop')
   }
   return ''
 }
 
-var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
+function addIdData (b37ID, clinvarRelationsData, template, elem) {
   var varNameString = ''
   var varNames = []
   clinvarRelationsData.forEach(function (clinvarData) {
@@ -41,7 +41,7 @@ var addIdData = function (b37ID, clinvarRelationsData, template, elem) {
   return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37ID, getevLink]
 }
 
-var addFreqData = function (b37ID, clinvarRelationsData, template, elem) {
+function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   var frequencies = []
   clinvarRelationsData.forEach(function (clinvarData) {
     if ('clinvar-rcva:esp-allele-frequency' in clinvarData) {
@@ -67,55 +67,51 @@ var addFreqData = function (b37ID, clinvarRelationsData, template, elem) {
   return [frequency, linkExAC]
 }
 
-var addInfoData = function (clinvarRelationsData, template, elem) {
+function addInfoData (clinvarRelationsData, template, elem) {
   var returnData = []
-  clinvarRelationsData.forEach(
-    function (clinvarData) {
-      var traitType = clinvarData['clinvar-rcva:trait-type']
-      var traitLabel
-      if (traitType === 'Disease') {
-        traitLabel = 'Disease'
-      } else {
-        traitLabel = 'Trait'
-      }
-      var templated = template({
-        clinvarTraitLabel: traitLabel,
-        clinvarRCVAAccession: clinvarData['clinvar-rcva:accession'],
-        clinvarRCVADiseaseName: clinvarData['clinvar-rcva:trait-name'],
-        clinvarRCVASignificance: clinvarData['clinvar-rcva:significance']
-      })
-      // console.log(templated)
-      elem.append(templated)
-      returnData.push([
-        traitLabel,
-        clinvarData['clinvar-rcva:accession'],
-        clinvarData['clinvar-rcva:trait-name'],
-        clinvarData['clinvar-rcva:significance']
-      ])
+  clinvarRelationsData.forEach(function (clinvarData) {
+    var traitType = clinvarData['clinvar-rcva:trait-type']
+    var traitLabel
+    if (traitType === 'Disease') {
+      traitLabel = 'Disease'
+    } else {
+      traitLabel = 'Trait'
     }
-  )
+    var templated = template({
+      clinvarTraitLabel: traitLabel,
+      clinvarRCVAAccession: clinvarData['clinvar-rcva:accession'],
+      clinvarRCVADiseaseName: clinvarData['clinvar-rcva:trait-name'],
+      clinvarRCVASignificance: clinvarData['clinvar-rcva:significance']
+    })
+    // console.log(templated)
+    elem.append(templated)
+    returnData.push([
+      traitLabel,
+      clinvarData['clinvar-rcva:accession'],
+      clinvarData['clinvar-rcva:trait-name'],
+      clinvarData['clinvar-rcva:significance']
+    ])
+  })
   // console.log(elem)
   return returnData
 }
 
-var asCSVContent = function (idData, freqData, infoData) {
+function asCSVContent (idData, freqData, infoData) {
   var csvContent = ''
-  for (var i = 0; i < infoData.length; i++) {
-    var infoDataItem = infoData[i]
+  infoData.forEach(function (infoDataItem) {
     var data = idData.concat(freqData).concat(infoDataItem).map(function (e) {
       return '"' + e + '"'
     })
     csvContent += data.join(',') + '\n'
-  }
+  })
   return csvContent
 }
 
-var addGennotesData = function (data, textStatus, jqXHR) {
+function addGennotesData (data, textStatus, jqXHR) {
   // Build a CSV version of the data for download.
   var csvContent = ''
 
-  for (var i = 0; i < data['results'].length; i++) {
-    var result = data['results'][i]
+  data['results'].forEach(function (result) {
     // console.log(result['b37_id'])
 
     // Set up target elements by emptying them.
@@ -140,7 +136,7 @@ var addGennotesData = function (data, textStatus, jqXHR) {
     // No RCVA matches, prob variant was a multi-allele record - ignore it.
     if (clinvarRelationsData.length === 0) {
       rowGV.addClass('hidden')
-      continue
+      return
     }
 
     // console.log('Adding ClinVar data')
@@ -149,7 +145,7 @@ var addGennotesData = function (data, textStatus, jqXHR) {
     var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
 
     csvContent += asCSVContent(idData, freqData, infoData)
-  }
+  })
 
   // Add CSV download link.
   // console.log("Adding CSV data as link:")
@@ -169,12 +165,13 @@ $(function () {
   // console.log(variantList)
   var variantListJSON = JSON.stringify(variantList)
   // console.log(variantListJSON)
-  $.ajax(
-    {
-      url: 'http://gennotes.herokuapp.com/api/variant/',
-      dataType: 'json',
-      data: {'variant_list': variantListJSON, 'page_size': 100},
-      success: addGennotesData
+  $.ajax({
+    url: 'http://gennotes.herokuapp.com/api/variant/',
+    dataType: 'json',
+    data: {'variant_list': variantListJSON, 'page_size': 100},
+    success: addGennotesData,
+    error: function (jqXHR, err) {
+      console.log('Error in AJAX call to GenNotes: ' + err)
     }
-  )
+  })
 })
