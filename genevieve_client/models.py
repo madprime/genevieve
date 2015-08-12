@@ -1,7 +1,11 @@
 from collections import OrderedDict
+import datetime
+import requests
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 CHROMOSOMES = OrderedDict([
     (1, 'chr1'),
@@ -70,3 +74,56 @@ class GenomeVariant(models.Model):
                                 choices=(('Het', 'Heterozygous'),
                                          ('Hom', 'Homozygous'),
                                          ('Hem', 'Hemizygous')))
+
+
+class GennotesEditor(models.Model):
+    user = models.OneToOneField(User)
+    gennotes_username = models.CharField(max_length=30, blank=True)
+    gennotes_userid = models.PositiveIntegerField(null=True)
+    access_token = models.CharField(max_length=30, blank=True)
+    refresh_token = models.CharField(max_length=30, blank=True)
+    token_expiration = models.DateTimeField(null=True)
+
+    _GENNOTES_URL_BASE = 'http://localhost:8800/'
+    GENNOTES_AUTH_URL = (
+        _GENNOTES_URL_BASE + 'oauth2-app/authorize?client_id={}&'
+        'response_type=code'.format(settings.GENNOTES_CLIENT_ID))
+    GENNOTES_TOKEN_URL = _GENNOTES_URL_BASE + 'oauth2-app/token/'
+    GENNOTES_USER_URL = _GENNOTES_URL_BASE + 'api/me/'
+
+    def _refresh_tokens(self):
+        response_refresh = requests.post(
+            self.GENNOTES_TOKEN_URL,
+            data={
+                'grant_type': 'refresh_token',
+                'refresh_token': self.refresh_token},
+            auth=requests.auth.HTTPBasicAuth(
+                settings.GENNOTES_CLIENT_ID, settings.GENNOTES_CLIENT_SECRET))
+        token_data = response_refresh.json()
+        self.access_token = token_data['access_token']
+        self.refresh_token = token_data['refresh_token']
+        self.token_expiration = (timezone.now() +
+                                 datetime.timedelta(
+                                     seconds=token_data['expires_in']))
+        self.save()
+
+    def _token_expired(self, offset=0):
+        """
+        True if token expired (or expires in offset seconds), otherwise False.
+        """
+        offset_expiration = (
+            self.token_expiration - timezone.timedelta(seconds=offset))
+        if timezone.now() >= offset_expiration:
+            return True
+        return False
+
+    def get_access_token(self, offset=30):
+        """
+        Return access token fresh for at least offset seconds (default 30).
+        """
+        if self._token_expired(offset=30):
+            self._refresh_tokens()
+        return self.access_token
+
+    def __unicode__(self):
+        return self.gennotes_username

@@ -7,8 +7,25 @@
 {% if user.is_authenticated %}
 <p>
   Welcome!
-  <a href="{% url 'genome_import' %}" class='btn btn-default'>Import genome</a>
 </p>
+<p>
+  <a href="{% url 'genome_import' %}" class='btn btn-default'>Import genome</a>
+  <small>
+    Import a genome to create a private report (VCF or Complete Genomics var
+    file).
+  </small>
+</p>
+
+{% if not user.gennoteseditor %}
+<p>
+  <a href="{{ gennotes_auth_url }}" class='btn btn-default'>Authorize GenNotes</a>
+  <small>
+    Authorize your GenNotes account to allow this Genevieve site to submit
+    edits on your behalf.
+  </small>
+</p>
+{% endif %}
+
 {% else %}
 <a href="{% url 'account_login' %}" class="btn btn-default">Log in</a>
 <a href="{% url 'account_signup' %}" class="btn btn-default">Create account</a>

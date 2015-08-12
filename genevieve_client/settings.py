@@ -169,3 +169,7 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.sql.SQLPanel',
     'template_timings_panel.panels.TemplateTimings.TemplateTimings',
 ]
+
+# GenNotes client ID and secret.
+GENNOTES_CLIENT_ID = os.getenv('GENNOTES_CLIENT_ID')
+GENNOTES_CLIENT_SECRET = os.getenv('GENNOTES_CLIENT_SECRET')
