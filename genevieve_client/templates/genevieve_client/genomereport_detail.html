@@ -15,6 +15,7 @@
     <th width="120px">Allele Freq</th>
     <th width="120px">Zyg</th>
     <th>Info</th>
+    <th>Notes</th>
   </tr>
 
   {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
@@ -23,6 +24,7 @@
     <td class="gv-freq-cell">Unknown</td>
     <td>{{ gv.get_zygosity_display }}</td>
     <td class="gv-info-cell"></td>
+    <td class="gv-notes-cell"><a href="{% url 'variant_edit' gv.variant.id %}">View/add/update shared notes</a></td>
   </tr>
   {% endfor %}
 

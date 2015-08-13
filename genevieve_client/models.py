@@ -8,31 +8,31 @@ from django.db import models
 from django.utils import timezone
 
 CHROMOSOMES = OrderedDict([
-    (1, 'chr1'),
-    (2, 'chr2'),
-    (3, 'chr3'),
-    (4, 'chr4'),
-    (5, 'chr5'),
-    (6, 'chr6'),
-    (7, 'chr7'),
-    (8, 'chr8'),
-    (9, 'chr9'),
-    (10, 'chr10'),
-    (11, 'chr11'),
-    (12, 'chr12'),
-    (13, 'chr13'),
-    (14, 'chr14'),
-    (15, 'chr15'),
-    (16, 'chr16'),
-    (17, 'chr17'),
-    (18, 'chr18'),
-    (19, 'chr19'),
-    (20, 'chr20'),
-    (21, 'chr21'),
-    (22, 'chr22'),
-    (23, 'chrX'),
-    (24, 'chrY'),
-    (25, 'chrM'),
+    (1, '1'),
+    (2, '2'),
+    (3, '3'),
+    (4, '4'),
+    (5, '5'),
+    (6, '6'),
+    (7, '7'),
+    (8, '8'),
+    (9, '9'),
+    (10, '10'),
+    (11, '11'),
+    (12, '12'),
+    (13, '13'),
+    (14, '14'),
+    (15, '15'),
+    (16, '16'),
+    (17, '17'),
+    (18, '18'),
+    (19, '19'),
+    (20, '20'),
+    (21, '21'),
+    (22, '22'),
+    (23, 'X'),
+    (24, 'Y'),
+    (25, 'M'),
     ])
 
 
@@ -84,7 +84,7 @@ class GennotesEditor(models.Model):
     refresh_token = models.CharField(max_length=30, blank=True)
     token_expiration = models.DateTimeField(null=True)
 
-    _GENNOTES_URL_BASE = 'http://localhost:8800/'
+    _GENNOTES_URL_BASE = 'https://gennotes.herokuapp.com/'
     GENNOTES_AUTH_URL = (
         _GENNOTES_URL_BASE + 'oauth2-app/authorize?client_id={}&'
         'response_type=code'.format(settings.GENNOTES_CLIENT_ID))

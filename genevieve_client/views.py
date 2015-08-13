@@ -1,16 +1,20 @@
 import datetime
+import json
+import re
 import requests
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.urlresolvers import reverse_lazy
+from django.core.urlresolvers import reverse_lazy, reverse
 from django.utils.decorators import method_decorator
+from django.views.generic.detail import (SingleObjectMixin,
+                                         SingleObjectTemplateResponseMixin)
 from django.views.generic import (DetailView, FormView, ListView,
                                   RedirectView, TemplateView)
 
-from .models import GennotesEditor, GenomeReport
-from .forms import GenomeUploadForm
+from .models import GennotesEditor, GenomeReport, Variant
+from .forms import GenomeUploadForm, GenevieveEditForm
 from .tasks import produce_genome_report
 
 
@@ -33,7 +37,7 @@ class AuthorizeGennotesView(RedirectView):
             data={
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': 'http://localhost:8000/authorize_gennotes/'
+                'redirect_uri': settings.GENNOTES_REDIRECT_URI
             },
             auth=requests.auth.HTTPBasicAuth(
                 settings.GENNOTES_CLIENT_ID, settings.GENNOTES_CLIENT_SECRET
@@ -120,3 +124,93 @@ class GenomeReportDetailView(DetailView):
         """Return object info only if this report belongs to this user."""
         queryset = super(GenomeReportDetailView, self).get_queryset()
         return queryset.filter(user=self.request.user)
+
+
+class GenevieveVariantEditView(SingleObjectMixin,
+                               SingleObjectTemplateResponseMixin,
+                               FormView):
+    model = Variant
+    form_class = GenevieveEditForm
+    initial = {'genevieve_inheritance': 'unknown',
+               'genevieve_evidence': 'reported'}
+
+    def _get_gennotes_data(self):
+        self.object = self.get_object()
+        b37_lookup = '-'.join([str(x) for x in [
+            'b37', self.object.chromosome, self.object.pos,
+            self.object.ref_allele, self.object.var_allele]])
+        gennotes_data = requests.get(
+            'https://gennotes.herokuapp.com/api/variant/' + b37_lookup).json()
+        relation_data = gennotes_data['relation_set'][0]
+        if 'relation_id' in self.request.GET:
+            relation_url = (
+                'https://gennotes.herokuapp.com/api/'
+                'relation/{}/'.format(self.request.GET['relation_id']))
+            try:
+                relation_data = [r for r in gennotes_data['relation_set'] if
+                                 r['url'] == relation_url][0]
+            except IndexError:
+                relation_data = None
+        re_relation_id = r'://[^/]+/api/relation/([0-9]+)/'
+        relation_id = relation_version = None
+        if relation_data:
+            if re.search(re_relation_id, relation_data['url']):
+                relation_id = re.search(
+                    re_relation_id, relation_data['url']).groups()[0]
+                relation_version = relation_data['current_version']
+            else:
+                relation_data = None
+        self.gennotes_data = {
+            'gennotes_data': gennotes_data,
+            'relation_data': relation_data,
+            'relation_id': relation_id,
+            'relation_version': relation_version
+        }
+
+    def get_context_data(self, *args, **kwargs):
+        self.object = self.get_object()
+        kwargs.update(self.gennotes_data)
+        return super(GenevieveVariantEditView,
+                     self).get_context_data(*args, **kwargs)
+
+    def get_success_url(self):
+        self.object = self.get_object()
+        return reverse('variant_edit', args=[self.object.id])
+
+    def get_initial(self):
+        initial = super(GenevieveVariantEditView, self).get_initial()
+        try:
+            relation_tags = self.gennotes_data['relation_data']['tags']
+        except AttributeError:
+            self._get_gennotes_data()
+            relation_tags = self.gennotes_data['relation_data']['tags']
+        if 'genevieve:inheritance' in relation_tags:
+            initial['genevieve_inheritance'] = relation_tags[
+                'genevieve:inheritance']
+        if 'genevieve:evidence' in relation_tags:
+            initial['genevieve_evidence'] = relation_tags['genevieve:evidence']
+        if 'genevieve:notes' in relation_tags:
+            initial['genevieve_notes'] = relation_tags['genevieve:notes']
+        return initial
+
+    def form_valid(self, form):
+        relation_id = self.request.POST['relation_id']
+        relation_version = self.request.POST['relation_version']
+        genevieve_inheritance = form.cleaned_data['genevieve_inheritance']
+        genevieve_evidence = form.cleaned_data['genevieve_evidence']
+        genevieve_notes = form.cleaned_data['genevieve_notes']
+        access_token = self.request.user.gennoteseditor.get_access_token()
+        response_patch = requests.patch(
+            'https://gennotes.herokuapp.com/api/relation/{}/'.format(
+                relation_id),
+            data=json.dumps({
+                'tags': {
+                    'genevieve:inheritance': genevieve_inheritance,
+                    'genevieve:evidence': genevieve_evidence,
+                    'genevieve:notes': genevieve_notes,
+                },
+                'edited-version': int(relation_version)
+            }),
+            headers={'Content-type': 'application/json',
+                     'Authorization': 'Bearer {}'.format(access_token)})
+        return super(GenevieveVariantEditView, self).form_valid(form)
