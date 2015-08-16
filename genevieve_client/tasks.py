@@ -65,17 +65,17 @@ def produce_genome_report(genome_report):
     clinvar_file = setup_clinvar_file()
     clinvar_matches = vcf2clinvar.match_to_clinvar(genome_file=genome_in,
                                                    clin_file=clinvar_file)
-    chrom_map = {v: k for k, v in CHROMOSOMES.items()}
+    chrom_map = {'chr' + v: k for k, v in CHROMOSOMES.items()}
     for genome_vcf_line, allele, zygosity in clinvar_matches:
         chrom = chrom_map[REV_CHROM_INDEX[CHROM_INDEX[genome_vcf_line.chrom]]]
         pos = genome_vcf_line.start
         ref_allele = genome_vcf_line.ref_allele
         var_allele = allele.sequence
 
-        # Only record if has significance that isn't "not provided", "benign",
-        # "likely benign", or "other".
+        # Only record if has significance that isn't "uncertain",
+        # "not provided", "benign", "likely benign", or "other".
         sigs = [r.sig for r in allele.records if
-                r.sig != '1' and r.sig != '2' and
+                r.sig != '0' and r.sig != '1' and r.sig != '2' and
                 r.sig != '3' and r.sig != '255']
         if not sigs:
             continue

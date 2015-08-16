@@ -191,26 +191,48 @@ class GenevieveVariantEditView(SingleObjectMixin,
             initial['genevieve_evidence'] = relation_tags['genevieve:evidence']
         if 'genevieve:notes' in relation_tags:
             initial['genevieve_notes'] = relation_tags['genevieve:notes']
+        if 'genevieve:allele-frequency' in relation_tags:
+            initial['genevieve_allele_freq'] = relation_tags[
+                'genevieve:allele-frequency']
+        if 'genevieve:allele-frequency-source' in relation_tags:
+            initial['genevieve_allele_freq_source'] = relation_tags[
+                'genevieve:allele-frequency-source']
         return initial
 
     def form_valid(self, form):
         relation_id = self.request.POST['relation_id']
         relation_version = self.request.POST['relation_version']
-        genevieve_inheritance = form.cleaned_data['genevieve_inheritance']
-        genevieve_evidence = form.cleaned_data['genevieve_evidence']
-        genevieve_notes = form.cleaned_data['genevieve_notes']
         access_token = self.request.user.gennoteseditor.get_access_token()
+        relation_uri = ('https://gennotes.herokuapp.com/api/relation/'
+            '{}/'.format(relation_id))
+
+        # Assemble updated Genevieve tag data.
+        tags = {}
+        tags['genevieve:inheritance'] = form.cleaned_data[
+            'genevieve_inheritance']
+        tags['genevieve:evidence'] = form.cleaned_data['genevieve_evidence']
+        # Notes may be empty, but we'll set anyway.
+        tags['genevieve:notes'] = form.cleaned_data['genevieve_notes']
+        # Set frequency if we got it
+        if form.cleaned_data['genevieve_allele_freq']:
+            tags['genevieve:allele-frequency'] = float(form.cleaned_data[
+                'genevieve_allele_freq'])
+            if form.cleaned_data['genevieve_allele_freq_source']:
+                tags['genevieve:allele-frequency-source'] = form.cleaned_data[
+                    'genevieve_allele_freq_source']
+
+        # Send edit to the GenNotes API.
+        print tags
+        data = json.dumps({
+            'tags': tags,
+            'edited-version': int(relation_version)
+        })
+        print data
         response_patch = requests.patch(
-            'https://gennotes.herokuapp.com/api/relation/{}/'.format(
-                relation_id),
-            data=json.dumps({
-                'tags': {
-                    'genevieve:inheritance': genevieve_inheritance,
-                    'genevieve:evidence': genevieve_evidence,
-                    'genevieve:notes': genevieve_notes,
-                },
-                'edited-version': int(relation_version)
-            }),
+            relation_uri,
+            data=data,
             headers={'Content-type': 'application/json',
                      'Authorization': 'Bearer {}'.format(access_token)})
+        print response_patch.status_code
+        print response_patch.text
         return super(GenevieveVariantEditView, self).form_valid(form)

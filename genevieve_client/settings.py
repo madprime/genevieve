@@ -49,7 +49,6 @@ INSTALLED_APPS = (
     'allauth',
     'allauth.account',
     'debug_toolbar',
-    'template_timings_panel',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -167,7 +166,6 @@ LOGIN_REDIRECT_URL = 'home'
 # http://django-debug-toolbar.readthedocs.org/en/latest/configuration.html#debug-toolbar-panels
 DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.sql.SQLPanel',
-    'template_timings_panel.panels.TemplateTimings.TemplateTimings',
 ]
 
 # GenNotes client ID and secret.

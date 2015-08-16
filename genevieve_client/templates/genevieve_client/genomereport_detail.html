@@ -9,24 +9,26 @@
 
 <div id="download-as-csv"></div>
 
-<table class="table">
-  <tr>
-    <th width="120px">Variant</th>
-    <th width="120px">Allele Freq</th>
-    <th width="120px">Zyg</th>
-    <th>Info</th>
-    <th>Notes</th>
-  </tr>
+<table id="genome-report">
+  <thead>
+    <tr>
+      <th width="120px">Variant</th>
+      <th width="120px">Allele Freq</th>
+      <th width="120px">Zyg</th>
+      <th>Info</th>
+    </tr>
+  </thead>
 
+  <tbody>
   {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
   <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
-    <td class="gv-id-cell">{{ gv.variant.b37_id }}</td>
-    <td class="gv-freq-cell">Unknown</td>
-    <td>{{ gv.get_zygosity_display }}</td>
-    <td class="gv-info-cell"></td>
-    <td class="gv-notes-cell"><a href="{% url 'variant_edit' gv.variant.id %}">View/add/update shared notes</a></td>
+    <td class="gv-id-cell" width="120px" style="width:120px;word-wrap:break-word;">{{ gv.variant.b37_id }}</td>
+    <td class="gv-freq-cell" width="120px">Unknown</td>
+    <td width="120px">{{ gv.get_zygosity_display }}</td>
+    <td id="{{ gv.variant.id }}" class="gv-info-cell"></td>
   </tr>
   {% endfor %}
+  </tbody>
 
 </table>
 {% endblock content %}
@@ -46,11 +48,24 @@
 </script>
 
 <script type="text/template" id="variant-info-template">
-  <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
-    ${ clinvarRCVAAccession }</a></b>
-  <ul>
-    <li><b>${ clinvarTraitLabel }: </b>${ clinvarRCVADiseaseName }</li>
-    <li><b>Significance: </b>${ clinvarRCVASignificance }</li>
-  </ul>
+  <div class="row">
+    <div class="col-xs-6">
+      <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
+        ${ clinvarRCVAAccession }</a></b>
+      <ul>
+        <li><b>${ clinvarTraitLabel }: </b>${ clinvarRCVADiseaseName }</li>
+        <li><b>Significance: </b>${ clinvarRCVASignificance }</li>
+      </ul>
+    </div>
+    <div class="col-xs-6">
+      <b>Genevieve information</b>
+      <ul class="genevieve-information">
+        <li><b>Inheritance: </b>${ genevieveInheritance }</li>
+        <li><b>Evidence: </b>${ genevieveEvidence }</li>
+        <li><b>Notes: </b>${ genevieveNotes }</li>
+      </ul>
+      <a href="/variant/${ localVariantID }/">View/add/update shared notes</a>
+    </div>
+  </div>
 </script>
 {% endblock js_templates %}

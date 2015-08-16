@@ -44,9 +44,15 @@ function addIdData (b37ID, clinvarRelationsData, template, elem) {
 function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   var frequencies = []
   clinvarRelationsData.forEach(function (clinvarData) {
+    if ('genevieve:allele-frequency' in clinvarData) {
+      var freq = clinvarData['genevieve:allele-frequency']
+      console.log(freq)
+      frequencies.push(freq)
+      return
+    }
     if ('clinvar-rcva:esp-allele-frequency' in clinvarData) {
       var freq = clinvarData['clinvar-rcva:esp-allele-frequency']
-      if (_.contains(frequencies, freq)) return
+      console.log(freq)
       frequencies.push(freq)
     }
   })
@@ -55,7 +61,7 @@ function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   if (frequencies.length === 0) {
     frequency = 'Unknown'
   } else {
-    frequency = frequencies[0]
+    frequency = frequencies[0].substr(0, 8)
   }
   linkExAC = 'http://exac.broadinstitute.org/variant/' + b37ID.substring(4)
   var templated = template({
@@ -68,6 +74,7 @@ function addFreqData (b37ID, clinvarRelationsData, template, elem) {
 }
 
 function addInfoData (clinvarRelationsData, template, elem) {
+  var variantID = elem.attr('id')
   var returnData = []
   clinvarRelationsData.forEach(function (clinvarData) {
     var traitType = clinvarData['clinvar-rcva:trait-type']
@@ -81,15 +88,28 @@ function addInfoData (clinvarRelationsData, template, elem) {
       clinvarTraitLabel: traitLabel,
       clinvarRCVAAccession: clinvarData['clinvar-rcva:accession'],
       clinvarRCVADiseaseName: clinvarData['clinvar-rcva:trait-name'],
-      clinvarRCVASignificance: clinvarData['clinvar-rcva:significance']
+      clinvarRCVASignificance: clinvarData['clinvar-rcva:significance'],
+      genevieveInheritance: clinvarData['genevieve:inheritance'],
+      genevieveEvidence: clinvarData['genevieve:evidence'],
+      genevieveNotes: clinvarData['genevieve:notes'],
+      localVariantID: variantID
     })
     // console.log(templated)
     elem.append(templated)
+    if (!(clinvarData['genevieve:inheritance'] ||
+          clinvarData['genevieve:evidence'] ||
+          clinvarData['genevieve:notes'])) {
+      var elemListGenevieve = elem.find('ul.genevieve-information').empty()
+      elemListGenevieve.append('<li>No Genevieve notes.</li>')
+    }
     returnData.push([
       traitLabel,
       clinvarData['clinvar-rcva:accession'],
       clinvarData['clinvar-rcva:trait-name'],
-      clinvarData['clinvar-rcva:significance']
+      clinvarData['clinvar-rcva:significance'],
+      clinvarData['genevieve:inheritance'],
+      clinvarData['genevieve:evidence'],
+      clinvarData['genevieve:notes']
     ])
   })
   // console.log(elem)
@@ -109,6 +129,7 @@ function asCSVContent (idData, freqData, infoData) {
 
 function addGennotesData (data, textStatus, jqXHR) {
   // Build a CSV version of the data for download.
+  console.log('Adding Gennotes data')
   var csvContent = ''
 
   data['results'].forEach(function (result) {
@@ -156,6 +177,17 @@ function addGennotesData (data, textStatus, jqXHR) {
     .attr('href', 'data:text/csv;charset=utf8,' + encodeURIComponent(csvContent))
     .attr('download', filenameCSV)
   downloadCSVDiv.append(downloadCSVLink)
+
+  // Sort the table
+  var elem = $('table#genome-report')
+  console.log(elem)
+  elem.tablesorter({
+    headers:
+      {
+        1: { sorter: 'digit' }
+      }
+  })
+  console.log('sorted?')
 }
 
 $(function () {
