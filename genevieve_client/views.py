@@ -140,12 +140,13 @@ class GenevieveVariantEditView(SingleObjectMixin,
             'b37', self.object.chromosome, self.object.pos,
             self.object.ref_allele, self.object.var_allele]])
         gennotes_data = requests.get(
-            'https://gennotes.herokuapp.com/api/variant/' + b37_lookup).json()
+            '{}/api/variant/{}'.format(
+                settings.GENNOTES_SERVER, b37_lookup)).json()
         relation_data = gennotes_data['relation_set'][0]
         if 'relation_id' in self.request.GET:
             relation_url = (
-                'https://gennotes.herokuapp.com/api/'
-                'relation/{}/'.format(self.request.GET['relation_id']))
+                '{}/api/relation/{}/'.format(
+                    settings.GENNOTES_SERVER, self.request.GET['relation_id']))
             try:
                 relation_data = [r for r in gennotes_data['relation_set'] if
                                  r['url'] == relation_url][0]
@@ -203,15 +204,14 @@ class GenevieveVariantEditView(SingleObjectMixin,
         relation_id = self.request.POST['relation_id']
         relation_version = self.request.POST['relation_version']
         access_token = self.request.user.gennoteseditor.get_access_token()
-        relation_uri = ('https://gennotes.herokuapp.com/api/relation/'
-            '{}/'.format(relation_id))
+        relation_uri = ('{}/api/relation/{}/'.format(settings.GENNOTES_SERVER,
+                                                    relation_id))
 
         # Assemble updated Genevieve tag data.
         tags = {}
         tags['genevieve:inheritance'] = form.cleaned_data[
             'genevieve_inheritance']
         tags['genevieve:evidence'] = form.cleaned_data['genevieve_evidence']
-        # Notes may be empty, but we'll set anyway.
         tags['genevieve:notes'] = form.cleaned_data['genevieve_notes']
         # Set frequency if we got it
         if form.cleaned_data['genevieve_allele_freq']:

@@ -84,12 +84,11 @@ class GennotesEditor(models.Model):
     refresh_token = models.CharField(max_length=30, blank=True)
     token_expiration = models.DateTimeField(null=True)
 
-    _GENNOTES_URL_BASE = 'https://gennotes.herokuapp.com/'
     GENNOTES_AUTH_URL = (
-        _GENNOTES_URL_BASE + 'oauth2-app/authorize?client_id={}&'
+        settings.GENNOTES_SERVER + '/oauth2-app/authorize?client_id={}&'
         'response_type=code'.format(settings.GENNOTES_CLIENT_ID))
-    GENNOTES_TOKEN_URL = _GENNOTES_URL_BASE + 'oauth2-app/token/'
-    GENNOTES_USER_URL = _GENNOTES_URL_BASE + 'api/me/'
+    GENNOTES_TOKEN_URL = settings.GENNOTES_SERVER + '/oauth2-app/token/'
+    GENNOTES_USER_URL = settings.GENNOTES_SERVER + '/api/me/'
 
     def _refresh_tokens(self):
         response_refresh = requests.post(

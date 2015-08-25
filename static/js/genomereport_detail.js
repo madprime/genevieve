@@ -43,16 +43,15 @@ function addIdData (b37ID, clinvarRelationsData, template, elem) {
 
 function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   var frequencies = []
+  var freq
   clinvarRelationsData.forEach(function (clinvarData) {
     if ('genevieve:allele-frequency' in clinvarData) {
-      var freq = clinvarData['genevieve:allele-frequency']
-      console.log(freq)
+      freq = clinvarData['genevieve:allele-frequency']
       frequencies.push(freq)
       return
     }
     if ('clinvar-rcva:esp-allele-frequency' in clinvarData) {
-      var freq = clinvarData['clinvar-rcva:esp-allele-frequency']
-      console.log(freq)
+      freq = clinvarData['clinvar-rcva:esp-allele-frequency']
       frequencies.push(freq)
     }
   })
@@ -61,9 +60,9 @@ function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   if (frequencies.length === 0) {
     frequency = 'Unknown'
   } else {
-    frequency = frequencies[0].substr(0, 8)
+    frequency = frequencies[0].substr(0, 9)
   }
-  linkExAC = 'http://exac.broadinstitute.org/variant/' + b37ID.substring(4)
+  var linkExAC = 'http://exac.broadinstitute.org/variant/' + b37ID.substring(4)
   var templated = template({
     clinvarRCVAfreqESP: frequency,
     linkExAC: linkExAC
@@ -96,9 +95,10 @@ function addInfoData (clinvarRelationsData, template, elem) {
     })
     // console.log(templated)
     elem.append(templated)
-    if (!(clinvarData['genevieve:inheritance'] ||
-          clinvarData['genevieve:evidence'] ||
-          clinvarData['genevieve:notes'])) {
+    var noGenevieveData = (!(clinvarData['genevieve:inheritance'] ||
+                              clinvarData['genevieve:evidence'] ||
+                              clinvarData['genevieve:notes']))
+    if (noGenevieveData) {
       var elemListGenevieve = elem.find('ul.genevieve-information').empty()
       elemListGenevieve.append('<li>No Genevieve notes.</li>')
     }
@@ -180,14 +180,12 @@ function addGennotesData (data, textStatus, jqXHR) {
 
   // Sort the table
   var elem = $('table#genome-report')
-  console.log(elem)
   elem.tablesorter({
     headers:
       {
         1: { sorter: 'digit' }
       }
   })
-  console.log('sorted?')
 }
 
 $(function () {
@@ -198,7 +196,7 @@ $(function () {
   var variantListJSON = JSON.stringify(variantList)
   // console.log(variantListJSON)
   $.ajax({
-    url: 'http://gennotes.herokuapp.com/api/variant/',
+    url: 'https://gennotes.herokuapp.com/api/variant/',
     dataType: 'json',
     data: {'variant_list': variantListJSON, 'page_size': 100},
     success: addGennotesData,
