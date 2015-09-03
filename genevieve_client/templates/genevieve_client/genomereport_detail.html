@@ -4,6 +4,8 @@
 <script src="/static/js/genomereport_detail.js"></script>
 {% endblock js_scripts %}
 
+{% block head_title %}{{genomereport.report_name}}{% endblock %}
+
 {% block content %}
 <h2 id="report-name">{{ genomereport.report_name }}</h2>
 
