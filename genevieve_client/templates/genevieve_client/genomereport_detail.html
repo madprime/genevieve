@@ -11,12 +11,12 @@
 
 <div id="download-as-csv"></div>
 
-<table id="genome-report">
+<table id="genome-report" style="table-layout:fixed">
   <thead>
     <tr>
-      <th width="120px">Variant</th>
-      <th width="120px">Allele Freq</th>
-      <th width="120px">Zyg</th>
+      <th style="width:150px;word-wrap:break-word;">Variant</th>
+      <th width="100px">Allele Freq</th>
+      <th width="100px">Zygosity</th>
       <th>Info</th>
     </tr>
   </thead>
@@ -24,9 +24,9 @@
   <tbody>
   {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
   <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
-    <td class="gv-id-cell" width="120px" style="width:120px;word-wrap:break-word;">{{ gv.variant.b37_id }}</td>
-    <td class="gv-freq-cell" width="120px">Unknown</td>
-    <td width="120px">{{ gv.get_zygosity_display }}</td>
+    <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">{{ gv.variant.b37_id }}</td>
+    <td class="gv-freq-cell" width="100px">Unknown</td>
+    <td width="100px">{{ gv.get_zygosity_display }}</td>
     <td id="{{ gv.variant.id }}" class="gv-info-cell"></td>
   </tr>
   {% endfor %}
@@ -39,9 +39,15 @@
 {% block js_templates %}
 <!-- Display of retrieved ReferenceClinVarAssertion data from GenNotes -->
 <script type="text/template" id="variant-id-template">
-  <b>${ clinvarRCVAPreferredName }</b><br>
-  <small><b>b37 ID:</b> ${ b37VariantID }</small><br>
-  <small><a href="${ linkGETEvidence }">Check on GET-Evidence</a></small>
+  <p>
+    <b>${ b37VariantID }</b>
+  </p>
+  <p>
+    <small><b>ClinVar name: </b>${ clinvarRCVAPreferredName }</small>
+  </p>
+  <p>
+    <small><a href="${ linkGETEvidence }">Check on GET-Evidence</a></small>
+  </p>
 </script>
 
 <script type="text/template" id="variant-freq-template">
@@ -51,17 +57,17 @@
 
 <script type="text/template" id="variant-info-template">
   <div class="row">
-    <div class="col-xs-6">
+    <div class="col-xs-4">
       <b><a href="http://www.ncbi.nlm.nih.gov/clinvar/${ clinvarRCVAAccession }">
         ${ clinvarRCVAAccession }</a></b>
-      <ul>
+      <ul style="padding-left:15px;">
         <li><b>${ clinvarTraitLabel }: </b>${ clinvarRCVADiseaseName }</li>
         <li><b>Significance: </b>${ clinvarRCVASignificance }</li>
       </ul>
     </div>
-    <div class="col-xs-6">
+    <div class="col-xs-8">
       <b>Genevieve information</b>
-      <ul class="genevieve-information">
+      <ul class="genevieve-information" style="padding-left:15px;">
         <li><b>Inheritance: </b>${ genevieveInheritance }</li>
         <li><b>Evidence: </b>${ genevieveEvidence }</li>
         <li><b>Notes: </b>${ genevieveNotes }</li>

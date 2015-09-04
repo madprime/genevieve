@@ -11,13 +11,35 @@ function guessGETEvidenceID (clinvarName) {
   return ''
 }
 
-function addIdData (b37ID, clinvarRelationsData, template, elem) {
+function parseB37ID (b37ID) {
+  var parsed = {}
+  var reB37ID = /([0-9]{1,2})-([0-9]+)-([ACGT]+)-([ACGT]+)/
+  var matchB37ID = reB37ID.exec(b37ID)
+  if (matchB37ID != null) {
+    parsed.chrom = matchB37ID[1]
+    parsed.pos = matchB37ID[2]
+    parsed.refAllele = matchB37ID[3]
+    parsed.varAllele = matchB37ID[4]
+    if (parsed.chrom === '23') {
+      parsed.chrom = 'X'
+    } else if (parsed.chrom === '24') {
+      parsed.chrom = 'Y'
+    } else if (parsed.chrom === '25') {
+      parsed.chrom = 'M'
+    }
+    return parsed
+  }
+  return null
+}
+
+function addIdData (parsedVar, clinvarRelationsData, template, elem) {
   var varNameString = ''
   var varNames = []
+
+  // Get preferred name(s) from ClinVar data.
   clinvarRelationsData.forEach(function (clinvarData) {
     var prefName = clinvarData['clinvar-rcva:preferred-name']
     if (!prefName) return
-
     if (varNameString) {
       // If this name already listed, don't output again.
       if (_.contains(varNames, prefName)) return
@@ -28,20 +50,25 @@ function addIdData (b37ID, clinvarRelationsData, template, elem) {
     }
     varNames.push(prefName)
   })
-  // console.log(varNames)
+
+  // Put together a position + change description.
+  var b37VariantID = 'Chr' + parsedVar.chrom + ': ' + parsedVar.pos + ' ' +
+    parsedVar.refAllele + ' > ' + parsedVar.varAllele
+
+  // Guess the GET-Evidence link
   var getevID = guessGETEvidenceID(clinvarRelationsData[0]['clinvar-rcva:preferred-name'])
   var getevLink = 'http://evidence.pgp-hms.org/' + getevID
+
   var templated = template({
     clinvarRCVAPreferredName: varNameString,
-    b37VariantID: b37ID,
+    b37VariantID: b37VariantID,
     linkGETEvidence: getevLink
   })
   elem.append(templated)
-  // console.log(elem)
-  return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37ID, getevLink]
+  return [clinvarRelationsData[0]['clinvar-rcva:preferred-name'], b37VariantID, getevLink]
 }
 
-function addFreqData (b37ID, clinvarRelationsData, template, elem) {
+function addFreqData (parsedVar, clinvarRelationsData, template, elem) {
   var frequencies = []
   var freq
   clinvarRelationsData.forEach(function (clinvarData) {
@@ -62,7 +89,8 @@ function addFreqData (b37ID, clinvarRelationsData, template, elem) {
   } else {
     frequency = frequencies[0].substr(0, 9)
   }
-  var linkExAC = 'http://exac.broadinstitute.org/variant/' + b37ID.substring(4)
+  var linkExAC = 'http://exac.broadinstitute.org/variant/' + parsedVar.chrom +
+    '-' + parsedVar.pos + '-' + parsedVar.refAllele + '-' + parsedVar.varAllele
   var templated = template({
     clinvarRCVAfreqESP: frequency,
     linkExAC: linkExAC
@@ -128,14 +156,11 @@ function asCSVContent (idData, freqData, infoData) {
 }
 
 function addGennotesData (data, textStatus, jqXHR) {
-  // Build a CSV version of the data for download.
-  console.log('Adding Gennotes data')
+  // While processing, we also build a CSV version of the data for download.
   var csvContent = ''
 
   data['results'].forEach(function (result) {
-    // console.log(result['b37_id'])
-
-    // Set up target elements by emptying them.
+    // Set up target elements and empty them.
     var rowGV = $('tr#gv-' + result['b37_id'])
     var elemGVID = rowGV.find('td.gv-id-cell').empty()
     var elemGVFreq = rowGV.find('td.gv-freq-cell').empty()
@@ -146,7 +171,8 @@ function addGennotesData (data, textStatus, jqXHR) {
     var templateVariantFreq = _.template($('#variant-freq-template').html())
     var templateVariantInfo = _.template($('#variant-info-template').html())
 
-    // Extract list of Relations of type 'clinvar-rcva'.
+    // Get all Relations of type 'clinvar-rcva'. These are the associated
+    // ClinVar assertions, and may also contain Genevieve notes.
     var clinvarRelationsData = []
     result['relation_set'].forEach(function (relation) {
       if (relation['tags']['type'] === 'clinvar-rcva') {
@@ -154,23 +180,25 @@ function addGennotesData (data, textStatus, jqXHR) {
       }
     })
 
-    // No RCVA matches, prob variant was a multi-allele record - ignore it.
+    // No Relations in GenNotes! Skip. This can happen when the ClinVar record
+    // is applies to multiple variants in combination. GenNotes doesn't store
+    // records for those cases.
     if (clinvarRelationsData.length === 0) {
       rowGV.addClass('hidden')
       return
     }
 
-    // console.log('Adding ClinVar data')
-    var idData = addIdData(result['b37_id'], clinvarRelationsData, templateVariantID, elemGVID)
-    var freqData = addFreqData(result['b37_id'], clinvarRelationsData, templateVariantFreq, elemGVFreq)
-    var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
+    // Get parsed variant info: [chrom, pos, varAllele, refAllele]
+    parsedVar = parseB37ID(result['b37_id'])
 
+    // Add data to each of these templates. Returned data is used for the CSV.
+    var idData = addIdData(parsedVar, clinvarRelationsData, templateVariantID, elemGVID)
+    var freqData = addFreqData(parsedVar, clinvarRelationsData, templateVariantFreq, elemGVFreq)
+    var infoData = addInfoData(clinvarRelationsData, templateVariantInfo, elemGVInfo)
     csvContent += asCSVContent(idData, freqData, infoData)
   })
 
   // Add CSV download link.
-  // console.log("Adding CSV data as link:")
-  // console.log(csvContent)
   var downloadCSVDiv = $('div#download-as-csv').empty()
   var filenameCSV = $('#report-name').text() + '.csv'
   var downloadCSVLink = $('<a>Download as CSV file</a>')
@@ -178,23 +206,25 @@ function addGennotesData (data, textStatus, jqXHR) {
     .attr('download', filenameCSV)
   downloadCSVDiv.append(downloadCSVLink)
 
-  // Sort the table
+  // Sort the table according to allele frequency.
   var elem = $('table#genome-report')
   elem.tablesorter({
     headers:
       {
         1: { sorter: 'digit' }
-      }
+      },
+    sortList: [[1, 0]]
   })
 }
 
 $(function () {
+  // Collect list of all variants, defined by the id attribute of the rows.
   var variantList = $('tr.gv-row').map(function () {
     return $(this).attr('id').substring(3)
   }).toArray()
-  // console.log(variantList)
+
+  // Fetch GenNotes data for this list, then run addGennotesData with it.
   var variantListJSON = JSON.stringify(variantList)
-  // console.log(variantListJSON)
   $.ajax({
     url: 'https://gennotes.herokuapp.com/api/variant/',
     dataType: 'json',
