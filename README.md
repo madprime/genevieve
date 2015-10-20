@@ -24,7 +24,7 @@ install personal copies of this web app.
 * **Using pip and virtualenv, install required packages in a virtualenv**
   * If pip + virtualenv are new to you, check out OpenHatch's [pip and virtualenv](https://openhatch.org/missions/pipvirtualenv) mission (this has instructions and/or links to guides for Debian/Ubuntu, Fedora, and Mac OS X).
   * Make a virtual environment, e.g. `mkvirtualenv genevieve`
-  * Install packages: `pip install -r requirements.txt`
+  * Install packages in this virtual environment: `pip install -r requirements.txt`
   * Later steps which need to be done in this virtual environment will be marked with **[in virtualenv]**
 * **Copy `env.example` to `.env`** (note the leading dot!)
   * Set your `SECRET_KEY` with a random string.
