@@ -79,16 +79,19 @@ class GenomeVariant(models.Model):
 class GennotesEditor(models.Model):
     user = models.OneToOneField(User)
     gennotes_username = models.CharField(max_length=30, blank=True)
-    gennotes_userid = models.PositiveIntegerField(null=True)
+    gennotes_id = models.PositiveIntegerField(null=False, unique=True)
+    gennotes_email = models.EmailField()
     access_token = models.CharField(max_length=30, blank=True)
     refresh_token = models.CharField(max_length=30, blank=True)
     token_expiration = models.DateTimeField(null=True)
 
+    GENNOTES_SERVER = settings.GENNOTES_SERVER
     GENNOTES_AUTH_URL = (
-        settings.GENNOTES_SERVER + '/oauth2-app/authorize?client_id={}&'
+        GENNOTES_SERVER + '/oauth2-app/authorize?client_id={}&'
         'response_type=code'.format(settings.GENNOTES_CLIENT_ID))
-    GENNOTES_TOKEN_URL = settings.GENNOTES_SERVER + '/oauth2-app/token/'
-    GENNOTES_USER_URL = settings.GENNOTES_SERVER + '/api/me/'
+    GENNOTES_SIGNUP_URL = GENNOTES_SERVER + '/accounts/signup/'
+    GENNOTES_TOKEN_URL = GENNOTES_SERVER + '/oauth2-app/token/'
+    GENNOTES_USER_URL = GENNOTES_SERVER + '/api/me/'
 
     def _refresh_tokens(self):
         response_refresh = requests.post(

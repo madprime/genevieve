@@ -4,6 +4,7 @@ import re
 import requests
 
 from django.conf import settings
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
@@ -17,12 +18,41 @@ from .models import GennotesEditor, GenomeReport, Variant
 from .forms import GenomeUploadForm, GenevieveEditForm
 from .tasks import produce_genome_report
 
+User = get_user_model()
+
+
+def make_unique_username(base):
+    """
+    Ensure a unique username. Almost always identical to the GenNotes username.
+
+    It's theoretically possible for username changes on GenNotes to result in a
+    collision. This method ensures that the Genevieve username is unique.
+    Probably this function never actually gets used.
+    """
+    try:
+        User.objects.get(username=base)
+    except User.DoesNotExist:
+        return base
+    else:
+        n = 2
+        while True:
+            name = base + str(n)
+            try:
+                User.objects.get(username=name)
+                n += 1
+            except User.DoesNotExist:
+                return name
+
 
 class HomeView(TemplateView):
     template_name = 'genevieve_client/home.html'
 
     def get_context_data(self, **kwargs):
-        kwargs['gennotes_auth_url'] = GennotesEditor.GENNOTES_AUTH_URL
+        kwargs.update({
+            'gennotes_auth_url': GennotesEditor.GENNOTES_AUTH_URL,
+            'gennotes_server': GennotesEditor.GENNOTES_SERVER,
+            'gennotes_signup_url': GennotesEditor.GENNOTES_SIGNUP_URL,
+        })
         return super(HomeView, self).get_context_data(**kwargs)
 
 
@@ -52,25 +82,49 @@ class AuthorizeGennotesView(RedirectView):
             headers={'Authorization': 'Bearer {}'.format(access_token)})
         return user_data_response.json()
 
-    @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         if 'code' in request.GET:
             token_data = self._exchange_code(request.GET['code'])
             user_data = self._get_user_data(token_data['access_token'])
 
-            gennotes_editor, _ = GennotesEditor.objects.get_or_create(
-                user=request.user)
-            gennotes_editor.access_token = token_data['access_token']
-            gennotes_editor.refresh_token = token_data['refresh_token']
-            gennotes_editor.token_expiration = (
-                datetime.datetime.now() +
-                datetime.timedelta(seconds=token_data['expires_in']))
-            gennotes_editor.gennotes_userid = user_data['id']
-            gennotes_editor.gennotes_username = user_data['username']
-            gennotes_editor.save()
-            messages.success(request,
-                             'GenNotes edits now authorized as GenNotes user: '
-                             '"{}"'.format(user_data['username']))
+            try:
+                gennotes_editor = GennotesEditor.objects.get(
+                    gennotes_id=user_data['id'])
+                gennotes_editor.access_token = token_data['access_token']
+                gennotes_editor.refresh_token = token_data['refresh_token']
+                gennotes_editor.token_expiration = (
+                    datetime.datetime.now() +
+                    datetime.timedelta(seconds=token_data['expires_in']))
+                gennotes_editor.gennotes_username = user_data['username']
+                gennotes_editor.gennotes_email = user_data['email']
+                gennotes_editor.save()
+                user = gennotes_editor.user
+                user.backend = (
+                    'genevieve_client.auth_backends.AuthenticationBackend')
+                login(request, user)
+            except GennotesEditor.DoesNotExist:
+                new_username = make_unique_username(base=user_data['username'])
+                new_user = User(username=new_username,
+                                email=user_data['email'])
+                new_user.save()
+                gennotes_editor = GennotesEditor(
+                    user=new_user,
+                    gennotes_id=user_data['id'],
+                    gennotes_username=user_data['username'],
+                    gennotes_email=user_data['email'],
+                    access_token=token_data['access_token'],
+                    refresh_token=token_data['refresh_token'],
+                    token_expiration=(
+                        datetime.datetime.now() +
+                        datetime.timedelta(seconds=token_data['expires_in'])))
+                messages.success(
+                    request,
+                    ('Account created for GenNotes user "{}" and authorized '
+                     'for edit submissions.'.format(user_data['username'])))
+                gennotes_editor.save()
+                new_user.backend = (
+                    'genevieve_client.auth_backends.AuthenticationBackend')
+                login(request, new_user)
         else:
             messages.error(request, 'Failed to authorize GenNotes!')
         return super(AuthorizeGennotesView, self).get(

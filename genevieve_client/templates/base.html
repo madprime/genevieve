@@ -3,6 +3,8 @@
 <html>
   <head profile="http://www.w3.org/2005/10/profile">
     <title>{% block head_title %}Genevieve{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -19,9 +21,9 @@
     <script src="/static/vendor/js/lodash.min.js"></script>
 
     <!-- Set up Bootstrap 3 using MaxCDN links. -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
     <!-- tablesorter (forked version by Mottie) -->
     <link rel="stylesheet" href="/static/vendor/css/theme.default.min.css">
@@ -39,7 +41,7 @@
 
     <!-- Navbar -->
     <nav class="navbar navbar-default">
-      <div class="container-fluid">
+      <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle collapsed"
               data-toggle="collapse" data-target="#navbar-main-collapse">
@@ -70,7 +72,7 @@
           </ul>
         </div><!-- /.navbar-collapse -->
       </div><!-- /.container-fluid -->
-    </nav>
+    </nav><!-- /.navbar .navbar-default -->
 
     <!-- Container: override the 'main' block to make new pages -->
     <div class="container">

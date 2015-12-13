@@ -66,6 +66,9 @@ AUTHENTICATION_BACKENDS = (
 
     # 'allauth' specific authentication methods, such as login by e-mail
     'allauth.account.auth_backends.AuthenticationBackend',
+
+    # custom backend to enable login via GenNotes account
+    'genevieve_client.auth_backends.AuthenticationBackend',
 ) + global_settings.AUTHENTICATION_BACKENDS
 
 

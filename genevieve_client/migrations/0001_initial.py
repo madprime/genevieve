@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('gennotes_username', models.CharField(max_length=30, blank=True)),
-                ('gennotes_userid', models.PositiveIntegerField(null=True)),
+                ('gennotes_id', models.PositiveIntegerField(unique=True)),
+                ('gennotes_email', models.EmailField(max_length=254)),
                 ('access_token', models.CharField(max_length=30, blank=True)),
                 ('refresh_token', models.CharField(max_length=30, blank=True)),
                 ('token_expiration', models.DateTimeField(null=True)),

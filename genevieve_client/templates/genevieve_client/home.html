@@ -5,30 +5,44 @@
 <h1>Genevieve</h1>
 
 {% if user.is_authenticated %}
-<p>
-  Welcome!
-</p>
-<p>
-  <a href="{% url 'genome_import' %}" class='btn btn-default'>Import genome</a>
-  <small>
+  <p>
+    Welcome!
+  </p>
+  <p>
+    <b>You're logged in with the following GenNotes account.</b> Edits to
+    variant notes you make will be submitted to this account. Edits are
+    publicly shared and associated with this username. However, your email
+    will remain private, only available to administrators of GenNotes and this
+    Genevieve site.
+  </p>
+  <div class="well well-sm" style="margin-left:20px;margin-bottom:15px;display:inline-block;">
+    <b>Username:</b> {{ request.user.gennoteseditor.gennotes_username }}<br>
+    <b>Email:</b> {{ request.user.gennoteseditor.gennotes_email }}
+  </div>
+  <p>
+    Wrong account? Make sure you're logged in to the correct account on
+    <a href="{{ gennotes_server }}">GenNotes</a>. Once this is corrected, you
+    can <a href="{% url 'account_logout' %}">log out</a> and back in again on
+    this Genevieve site.
+  </p>
+  <hr>
+  <p><a href="{% url 'genome_import' %}" class='btn btn-primary'>
+    Import genome</a></p>
+  <p>
     Import a genome to create a private report (VCF or Complete Genomics var
     file).
-  </small>
-</p>
-
-{% if not user.gennoteseditor %}
-<p>
-  <a href="{{ gennotes_auth_url }}" class='btn btn-default'>Authorize GenNotes</a>
-  <small>
-    Authorize your GenNotes account to allow this Genevieve site to submit
-    edits on your behalf.
-  </small>
-</p>
-{% endif %}
-
+  </p>
 {% else %}
-<a href="{% url 'account_login' %}" class="btn btn-default">Log in</a>
-<a href="{% url 'account_signup' %}" class="btn btn-default">Create account</a>
+  <p>
+    You'll need a <a href="{{ gennotes_server }}">GenNotes</a> account to log
+    in to Genevieve. (You can easily
+    <a href="{{ gennotes_signup_url }}">create an account</a> if you don't
+    already have one!) GenNotes is a server that stores and records notes on
+    genetic variants. Genevieve users can access and edit the genome notes
+    hosted by GenNotes.
+  </p>
+  <a href="{{ gennotes_auth_url }}" class='btn btn-default'>
+      Log in with a GenNotes account</a>
 {% endif %}
 
 {% endblock %}
