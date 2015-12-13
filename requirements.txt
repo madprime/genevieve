@@ -26,7 +26,7 @@ requests-oauthlib==0.5.0
 six==1.9.0
 sqlparse==0.1.15
 tini==3.0.1
-vcf2clinvar==0.1.dev4
+vcf2clinvar==0.1.dev5
 wsgiref==0.1.2
 # Complete Genomics var file to VCF format conversion (lossy)
 https://github.com/madprime/cgivar2vcf/archive/master.zip
