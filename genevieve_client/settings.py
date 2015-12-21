@@ -178,3 +178,6 @@ GENNOTES_REDIRECT_URI = os.getenv('GENNOTES_REDIRECT_URI',
                                   'http://localhost:8000/authorize_gennotes/')
 GENNOTES_SERVER = os.getenv('GENNOTES_SERVER',
                             'https://gennotes.herokuapp.com')
+
+# Genevieve settings
+GENEVIEVE_ADMIN_EMAIL = os.getenv('GENEVIEVE_ADMIN_EMAIL', '')

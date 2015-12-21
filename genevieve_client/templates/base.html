@@ -76,6 +76,18 @@
 
     <!-- Container: override the 'main' block to make new pages -->
     <div class="container">
+      {% if messages %}
+      <ul class="list-group">
+      {% for message in messages %}
+        {% if 'error' in message.tags %}
+        <li class="list-group-item list-group-item-danger">{{ message }}</li>
+        {% else %}
+        <li class="list-group-item list-group-item-{{ message.tags }}">
+          {{ message }}</li>
+        {% endif %}
+      {% endfor %}
+      </ul>
+      {% endif %}
       {% block content %}
       {% endblock content %}
     </div>

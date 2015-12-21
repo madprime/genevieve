@@ -3,13 +3,14 @@
 # and the celery package.
 from __future__ import absolute_import
 import bz2
+from datetime import datetime
 from ftplib import FTP
 import gzip
 import os
 
 from celery import shared_task
 from django.conf import settings
-import cgivar2vcf
+import cgivar2gvcf
 import vcf2clinvar
 from vcf2clinvar import clinvar_update
 from vcf2clinvar.common import CHROM_INDEX, REV_CHROM_INDEX
@@ -49,7 +50,7 @@ def setup_clinvar_file():
 
 
 @shared_task
-def produce_genome_report(genome_report):
+def produce_genome_report(genome_report, reprocess=False):
     if genome_report.genome_format == 'vcf':
         if genome_report.genome_file.name.endswith('.bz2'):
             genome_in = bz2.BZ2File(genome_report.genome_file.path, 'rb')
@@ -59,8 +60,11 @@ def produce_genome_report(genome_report):
             genome_in = open(genome_report.genome_file.path)
     elif genome_report.genome_format == 'cgivar':
         twobit_filepath = setup_twobit_file()
-        genome_in = cgivar2vcf.convert(cgi_data=genome_report.genome_file.path,
-                                       twobit_ref=twobit_filepath)
+        genome_in = cgivar2gvcf.convert(
+            cgi_input=genome_report.genome_file.path,
+            twobit_ref=twobit_filepath,
+            build='b37',
+            var_only=True)
 
     clinvar_file = setup_clinvar_file()
     clinvar_matches = vcf2clinvar.match_to_clinvar(genome_file=genome_in,
@@ -92,3 +96,5 @@ def produce_genome_report(genome_report):
             genome=genome_report,
             variant=variant,
             zygosity=zygosity)
+    genome_report.last_processed = datetime.now()
+    genome_report.save()

@@ -8,11 +8,12 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
+from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import (SingleObjectMixin,
                                          SingleObjectTemplateResponseMixin)
 from django.views.generic import (DetailView, FormView, ListView,
-                                  RedirectView, TemplateView)
+                                  RedirectView, TemplateView, UpdateView)
 
 from .models import GennotesEditor, GenomeReport, Variant
 from .forms import GenomeUploadForm, GenevieveEditForm
@@ -49,6 +50,7 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         kwargs.update({
+            'genevieve_admin_email': settings.GENEVIEVE_ADMIN_EMAIL,
             'gennotes_auth_url': GennotesEditor.GENNOTES_AUTH_URL,
             'gennotes_server': GennotesEditor.GENNOTES_SERVER,
             'gennotes_signup_url': GennotesEditor.GENNOTES_SIGNUP_URL,
@@ -102,6 +104,9 @@ class AuthorizeGennotesView(RedirectView):
                 user.backend = (
                     'genevieve_client.auth_backends.AuthenticationBackend')
                 login(request, user)
+                messages.success(
+                    request, ('Logged in as GenNotes user "{}".'.format(
+                              user_data['username'])))
             except GennotesEditor.DoesNotExist:
                 new_username = make_unique_username(base=user_data['username'])
                 new_user = User(username=new_username,
@@ -141,6 +146,12 @@ class GenomeImportView(FormView):
         return super(GenomeImportView, self).dispatch(*args, **kwargs)
 
     def form_valid(self, form):
+        # Double-check that user has permission to upload genome.
+        if not self.request.user.gennoteseditor.genome_upload_enabled:
+            print "Not authorized for genome upload??"
+            messages.error(self.request,
+                           'Account not authorized to upload genomes.')
+            return self.form_invalid(form)
         form.user = self.request.user
         new_report = GenomeReport(
             genome_file=self.request.FILES['genome_file'],
@@ -148,7 +159,8 @@ class GenomeImportView(FormView):
             report_name=form.cleaned_data['report_name'],
             genome_format=form.cleaned_data['genome_format'])
         new_report.save()
-        produce_genome_report.delay(genome_report=new_report)
+        produce_genome_report.delay(
+            genome_report=GenomeReport.objects.get(pk=new_report.id))
         # Insert calling celery task for genome processing here.
         return super(GenomeImportView, self).form_valid(form)
 
@@ -168,7 +180,6 @@ class GenomeReportListView(ListView):
 
 class GenomeReportDetailView(DetailView):
     model = GenomeReport
-    permanent = False
 
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
@@ -178,6 +189,23 @@ class GenomeReportDetailView(DetailView):
         """Return object info only if this report belongs to this user."""
         queryset = super(GenomeReportDetailView, self).get_queryset()
         return queryset.filter(user=self.request.user)
+
+
+class GenomeReportReprocessView(DetailView):
+    model = GenomeReport
+    template_name = 'genevieve_client/genomereport_reprocess.html'
+
+    def post(self, request, *args, **kwargs):
+        genome_report = self.get_object()
+        for genomevar in genome_report.genomevariant_set.all():
+            genomevar.delete()
+        produce_genome_report.delay(
+            genome_report=GenomeReport.objects.get(pk=genome_report.id))
+        messages.success(request,
+                         'Reprocessing initiated for "{}".'.format(
+                             genome_report.report_name))
+        return_url = reverse('genome_report_detail', args=[genome_report.id])
+        return HttpResponseRedirect(return_url)
 
 
 class GenevieveVariantEditView(SingleObjectMixin,

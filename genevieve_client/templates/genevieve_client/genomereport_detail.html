@@ -9,6 +9,7 @@
 {% block content %}
 <h2 id="report-name">{{ genomereport.report_name }}</h2>
 
+<a class='btn btn-default btn-sm pull-right' href="{% url 'genome_report_reprocess' genomereport.id %}">Reprocess genome</a>
 <div id="download-as-csv"></div>
 
 <table id="genome-report" style="table-layout:fixed">

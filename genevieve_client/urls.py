@@ -6,6 +6,7 @@ from .views import (AuthorizeGennotesView,
                     GenomeImportView,
                     GenomeReportDetailView,
                     GenomeReportListView,
+                    GenomeReportReprocessView,
                     GenevieveVariantEditView)
 
 urlpatterns = [
@@ -19,6 +20,9 @@ urlpatterns = [
 
     url(r'genome_reports/$', GenomeReportListView.as_view(),
         name='genome_report_list'),
+    url(r'genome_report/reprocess/(?P<pk>[0-9]+)/$',
+        GenomeReportReprocessView.as_view(),
+        name='genome_report_reprocess'),
     url(r'genome_report/(?P<pk>[0-9]+)/$', GenomeReportDetailView.as_view(),
         name='genome_report_detail'),
 

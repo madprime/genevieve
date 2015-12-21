@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
+{% if request.user.gennoteseditor.genome_upload_enabled %}
 <p>Import genome:</p>
 
 <form role="form" action="{% url 'genome_import' %}" method="post"
@@ -12,5 +12,9 @@
     <button type="submit" class="btn btn-default">Upload</button>
   </p>
 </form>
-
+{% else %}
+<p>
+  Sorry, genome upload hasn't been enabled for your account.
+</p>
+{% endif %}
 {% endblock %}

@@ -26,12 +26,21 @@
     this Genevieve site.
   </p>
   <hr>
-  <p><a href="{% url 'genome_import' %}" class='btn btn-primary'>
-    Import genome</a></p>
-  <p>
-    Import a genome to create a private report (VCF or Complete Genomics var
-    file).
-  </p>
+  {% if request.user.gennoteseditor.genome_upload_enabled %}
+    <p><a href="{% url 'genome_import' %}" class='btn btn-primary'>
+      Import genome</a></p>
+    <p>
+      Import a genome to create a private report (VCF or Complete Genomics var
+      file).
+    </p>
+  {% else %}
+    <p>
+      Contact this site's admin
+      {% if genevieve_admin_email %}at
+      <b>{{ genevieve_admin_email }} </b>{% endif %}to request permission
+      to perform genome uploads.
+    </p>
+  {% endif %}
 {% else %}
   <p>
     You'll need a <a href="{{ gennotes_server }}">GenNotes</a> account to log
