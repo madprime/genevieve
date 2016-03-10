@@ -59,11 +59,15 @@ def produce_genome_report(genome_report, reprocess=False):
         else:
             genome_in = open(genome_report.genome_file.path)
     elif genome_report.genome_format == 'cgivar':
+        local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
+                                     'genome_processing_files')
+        twobit_path, twobit_name = cgivar2gvcf.get_reference_genome_file(
+            local_storage, build='b37')
         twobit_filepath = setup_twobit_file()
         genome_in = cgivar2gvcf.convert(
             cgi_input=genome_report.genome_file.path,
             twobit_ref=twobit_filepath,
-            build='b37',
+            twobit_name=twobit_name,
             var_only=True)
 
     clinvar_file = setup_clinvar_file()
@@ -97,4 +101,6 @@ def produce_genome_report(genome_report, reprocess=False):
             variant=variant,
             zygosity=zygosity)
     genome_report.last_processed = datetime.now()
+    genome_report.save()
+    genome_report.genome_file.delete()
     genome_report.save()

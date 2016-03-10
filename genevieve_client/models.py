@@ -65,7 +65,7 @@ class Variant(models.Model):
 
 class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    report_name = models.CharField(max_length=30)
+    report_name = models.CharField(max_length=80)
     genome_file = models.FileField(upload_to=get_upload_path)
     permanent_file_storage = models.FileField(
         storage=S3BotoStorage(acl='private'), null=True)

@@ -8,7 +8,7 @@ blessings==1.6
 boto==2.38.0
 bpython==0.14.1
 celery==3.1.18
-cgivar2gvcf==0.1.2
+cgivar2gvcf==0.1.6
 configparser==3.5.0b2
 curtsies==0.1.19
 django-allauth==0.19.1
