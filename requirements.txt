@@ -5,7 +5,6 @@ anyjson==0.3.3
 argparse==1.2.1
 billiard==3.3.0.20
 blessings==1.6
-boto==2.38.0
 bpython==0.14.1
 celery==3.1.18
 cgivar2gvcf==0.1.6
@@ -13,7 +12,6 @@ configparser==3.5.0b2
 curtsies==0.1.19
 django-allauth==0.19.1
 django-debug-toolbar==1.3.0
-django-storages==1.1.8
 env-tools==2.0.0
 greenlet==0.4.7
 kombu==3.0.26

@@ -6,9 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django.utils.deconstruct import deconstructible
 
-from storages.backends.s3boto import S3BotoStorage as OriginalS3BotoStorage
 
 CHROMOSOMES = OrderedDict([
     (1, '1'),
@@ -39,18 +37,6 @@ CHROMOSOMES = OrderedDict([
     ])
 
 
-@deconstructible
-class S3BotoStorage(OriginalS3BotoStorage):
-    pass
-
-
-def get_upload_path(instance, filename=''):
-    """
-    Construct the upload path for a given DataFile and filename.
-    """
-    return '/'.join([instance.user.username, 'genomes', filename])
-
-
 class Variant(models.Model):
     chromosome = models.PositiveSmallIntegerField(choices=CHROMOSOMES.items())
     pos = models.PositiveIntegerField()
@@ -66,14 +52,8 @@ class Variant(models.Model):
 class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     report_name = models.CharField(max_length=80)
-    genome_file = models.FileField(upload_to=get_upload_path)
-    permanent_file_storage = models.FileField(
-        storage=S3BotoStorage(acl='private'), null=True)
+    genome_file_url = models.TextField()
     last_processed = models.DateTimeField(null=True)
-    genome_format = models.CharField(
-        max_length=6,
-        choices=[('vcf', 'VCF (Variant Call Format)'),
-                 ('cgivar', 'Complete Genomics var file')])
     variants = models.ManyToManyField(Variant, through='GenomeVariant',
                                       through_fields=('genome', 'variant'))
 

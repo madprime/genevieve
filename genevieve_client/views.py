@@ -154,10 +154,9 @@ class GenomeImportView(FormView):
             return self.form_invalid(form)
         form.user = self.request.user
         new_report = GenomeReport(
-            genome_file=self.request.FILES['genome_file'],
+            genome_file_url=form.cleaned_data['genome_file_url'],
             user=form.user,
-            report_name=form.cleaned_data['report_name'],
-            genome_format=form.cleaned_data['genome_format'])
+            report_name=form.cleaned_data['report_name'])
         new_report.save()
         produce_genome_report.delay(
             genome_report=GenomeReport.objects.get(pk=new_report.id))

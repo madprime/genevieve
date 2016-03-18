@@ -7,10 +7,13 @@ from datetime import datetime
 from ftplib import FTP
 import gzip
 import os
+import re
+import tempfile
+import urlparse
 
 from celery import shared_task
 from django.conf import settings
-import cgivar2gvcf
+import requests
 import vcf2clinvar
 from vcf2clinvar import clinvar_update
 from vcf2clinvar.common import CHROM_INDEX, REV_CHROM_INDEX
@@ -33,6 +36,30 @@ def setup_twobit_file():
     return twobit_filepath
 
 
+def get_remote_file(url, tempdir):
+    """
+    Get and save a remote file to temporary directory. Return filename used.
+    """
+    req = requests.get(url, stream=True)
+    if not req.status_code == 200:
+        msg = ('File URL not working! Data processing aborted: {}'.format(url))
+        raise Exception(msg)
+    orig_filename = ''
+    if 'Content-Disposition' in req.headers:
+        regex = re.match(r'attachment; filename="(.*)"$',
+                         req.headers['Content-Disposition'])
+        if regex:
+            orig_filename = regex.groups()[0]
+    if not orig_filename:
+        orig_filename = urlparse.urlsplit(req.url)[2].split('/')[-1]
+    tempf = open(os.path.join(tempdir, orig_filename), 'wb')
+    for chunk in req.iter_content(chunk_size=512 * 1024):
+        if chunk:
+            tempf.write(chunk)
+    tempf.close()
+    return orig_filename
+
+
 def setup_clinvar_file():
     local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
                                  'genome_processing_files')
@@ -51,42 +78,36 @@ def setup_clinvar_file():
 
 @shared_task
 def produce_genome_report(genome_report, reprocess=False):
-    if genome_report.genome_format == 'vcf':
-        if genome_report.genome_file.name.endswith('.bz2'):
-            genome_in = bz2.BZ2File(genome_report.genome_file.path, 'rb')
-        elif genome_report.genome_file.name.endswith('.gz'):
-            genome_in = gzip.open(genome_report.genome_file.path, 'rb')
-        else:
-            genome_in = open(genome_report.genome_file.path)
-    elif genome_report.genome_format == 'cgivar':
-        local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
-                                     'genome_processing_files')
-        twobit_path, twobit_name = cgivar2gvcf.get_reference_genome_file(
-            local_storage, build='b37')
-        twobit_filepath = setup_twobit_file()
-        genome_in = cgivar2gvcf.convert(
-            cgi_input=genome_report.genome_file.path,
-            twobit_ref=twobit_filepath,
-            twobit_name=twobit_name,
-            var_only=True)
-
+    tempdir = tempfile.mkdtemp()
+    genome_filename = get_remote_file(
+        genome_report.genome_file_url, tempdir)
+    genome_filepath = os.path.join(tempdir, genome_filename)
+    if genome_filepath.endswith('.bz2'):
+        genome_in = bz2.BZ2File(genome_filepath, 'rb')
+    elif genome_filepath.endswith('.gz'):
+        genome_in = gzip.open(genome_filepath, 'rb')
+    else:
+        genome_in = open(genome_filepath)
     clinvar_file = setup_clinvar_file()
     clinvar_matches = vcf2clinvar.match_to_clinvar(genome_file=genome_in,
                                                    clin_file=clinvar_file)
     chrom_map = {'chr' + v: k for k, v in CHROMOSOMES.items()}
     for genome_vcf_line, allele, zygosity in clinvar_matches:
-        chrom = chrom_map[REV_CHROM_INDEX[CHROM_INDEX[genome_vcf_line.chrom]]]
+        chrom = chrom_map[
+            REV_CHROM_INDEX[CHROM_INDEX[genome_vcf_line.chrom]]]
         pos = genome_vcf_line.start
         ref_allele = genome_vcf_line.ref_allele
         var_allele = allele.sequence
 
         # Only record if has significance that isn't "uncertain",
         # "not provided", "benign", "likely benign", or "other".
+        # (i.e. it "does something".)
         sigs = [r.sig for r in allele.records if
                 r.sig != '0' and r.sig != '1' and r.sig != '2' and
                 r.sig != '3' and r.sig != '255']
         if not sigs:
             continue
+
         # Only record if a report with a disease name exists.
         dbns = [r.dbn for r in allele.records if r.dbn != 'not_provided']
         if not dbns:
@@ -96,11 +117,13 @@ def produce_genome_report(genome_report, reprocess=False):
                                                    pos=pos,
                                                    ref_allele=ref_allele,
                                                    var_allele=var_allele)
+
         genome_variant, _ = GenomeVariant.objects.get_or_create(
             genome=genome_report,
             variant=variant,
             zygosity=zygosity)
+
     genome_report.last_processed = datetime.now()
     genome_report.save()
-    genome_report.genome_file.delete()
-    genome_report.save()
+    os.remove(genome_filepath)
+    os.rmdir(tempdir)

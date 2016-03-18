@@ -32,7 +32,10 @@ class GenomeUploadForm(forms.ModelForm):
     """
     class Meta:
         model = GenomeReport
-        fields = ['report_name', 'genome_file', 'genome_format']
+        fields = ['report_name', 'genome_file_url']
+        widgets = {
+            'genome_file_url': forms.Textarea(attrs={'cols': 80, 'rows': 1}),
+        }
 
 
 class GenevieveEditForm(forms.Form):

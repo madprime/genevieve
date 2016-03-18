@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 from django.conf import settings
-import genevieve_client.models
 
 
 class Migration(migrations.Migration):
@@ -32,10 +31,9 @@ class Migration(migrations.Migration):
             name='GenomeReport',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('report_name', models.CharField(max_length=30)),
-                ('genome_file', models.FileField(upload_to=genevieve_client.models.get_upload_path)),
-                ('permanent_file_storage', models.FileField(storage=genevieve_client.models.S3BotoStorage(acl=b'private'), null=True, upload_to=b'')),
-                ('genome_format', models.CharField(max_length=6, choices=[(b'vcf', b'VCF (Variant Call Format)'), (b'cgivar', b'Complete Genomics var file')])),
+                ('report_name', models.CharField(max_length=80)),
+                ('genome_file_url', models.TextField()),
+                ('last_processed', models.DateTimeField(null=True)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
