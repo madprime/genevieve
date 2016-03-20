@@ -4,9 +4,11 @@ import requests
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.utils import timezone
 
+import myvariant
 
 CHROMOSOMES = OrderedDict([
     (1, '1'),
@@ -33,7 +35,7 @@ CHROMOSOMES = OrderedDict([
     (22, '22'),
     (23, 'X'),
     (24, 'Y'),
-    (25, 'M'),
+    (25, 'MT'),
     ])
 
 
@@ -43,10 +45,35 @@ class Variant(models.Model):
     ref_allele = models.CharField(max_length=255)
     var_allele = models.CharField(max_length=255)
 
+    myvariant_clinvar = JSONField(default={})
+    myvariant_exac = JSONField(default={})
+    myvariant_last_update = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return self.b37_id
+
+    @property
+    def allele_frequency(self):
+        try:
+            ac = self.myvariant_exac['ac']['ac']
+            an = self.myvariant_exac['an']['an']
+            return ac * 1.0 / an
+        except KeyError:
+            return None
+
     @property
     def b37_id(self):
         return '-'.join([str(x) for x in [self.chromosome, self.pos,
                                           self.ref_allele, self.var_allele]])
+
+    @property
+    def b37_hgvs_id(self):
+        return myvariant.format_hgvs(
+            self.get_chromosome_display(),
+            self.pos,
+            self.ref_allele,
+            self.var_allele
+        )
 
 
 class GenomeReport(models.Model):
@@ -56,6 +83,28 @@ class GenomeReport(models.Model):
     last_processed = models.DateTimeField(null=True)
     variants = models.ManyToManyField(Variant, through='GenomeVariant',
                                       through_fields=('genome', 'variant'))
+
+    def refresh_myvariant_data(self):
+        vars_by_hgvs = {
+            v.b37_hgvs_id: v for v in self.variants.all()}
+        mv = myvariant.MyVariantInfo()
+        mv_data = mv.getvariants(vars_by_hgvs.keys(), fields=['clinvar', 'exac'])
+        for var_data in mv_data:
+            variant = vars_by_hgvs[var_data['_id']]
+            try:
+                clinvar_data = var_data['clinvar']
+                # Always as list - makes downstream code much easier.
+                if not type(clinvar_data['rcv']) == list:
+                    clinvar_data['rcv'] = [clinvar_data['rcv']]
+                variant.myvariant_clinvar = var_data['clinvar']
+            except KeyError:
+                variant.myvariant_clivar = {}
+            try:
+                variant.myvariant_exac = var_data['exac']
+            except KeyError:
+                variant.myvariant_exac = {}
+            variant.myvariant_last_update = timezone.now()
+            variant.save()
 
 
 class GenomeVariant(models.Model):

@@ -219,6 +219,7 @@ function addGennotesData (data, textStatus, jqXHR) {
 
 $(function () {
   // Collect list of all variants, defined by the id attribute of the rows.
+  return;
   var variantList = $('tr.gv-row').map(function () {
     return $(this).attr('id').substring(3)
   }).toArray()

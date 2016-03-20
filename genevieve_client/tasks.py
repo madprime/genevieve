@@ -78,10 +78,20 @@ def setup_clinvar_file():
 
 @shared_task
 def produce_genome_report(genome_report, reprocess=False):
-    tempdir = tempfile.mkdtemp()
-    genome_filename = get_remote_file(
-        genome_report.genome_file_url, tempdir)
-    genome_filepath = os.path.join(tempdir, genome_filename)
+    # Try to locally store and reuse the genome file.
+    # Retrieve again if not available (e.g. due to ephemeral file storage).
+    local_file_dir = os.path.join(
+        settings.LOCAL_STORAGE_ROOT,
+        'local_genome_files',
+        str(genome_report.id))
+    if not os.path.exists(local_file_dir):
+        os.makedirs(local_file_dir)
+    if len(os.listdir(local_file_dir)) == 1:
+        genome_filename = os.listdir(local_file_dir)[0]
+    else:
+        genome_filename = get_remote_file(
+            genome_report.genome_file_url, local_file_dir)
+    genome_filepath = os.path.join(local_file_dir, genome_filename)
     if genome_filepath.endswith('.bz2'):
         genome_in = bz2.BZ2File(genome_filepath, 'rb')
     elif genome_filepath.endswith('.gz'):
@@ -116,7 +126,9 @@ def produce_genome_report(genome_report, reprocess=False):
         variant, _ = Variant.objects.get_or_create(chromosome=chrom,
                                                    pos=pos,
                                                    ref_allele=ref_allele,
-                                                   var_allele=var_allele)
+                                                   var_allele=var_allele,
+                                                   myvariant_clinvar={},
+                                                   myvariant_exac={})
 
         genome_variant, _ = GenomeVariant.objects.get_or_create(
             genome=genome_report,
@@ -125,5 +137,4 @@ def produce_genome_report(genome_report, reprocess=False):
 
     genome_report.last_processed = datetime.now()
     genome_report.save()
-    os.remove(genome_filepath)
-    os.rmdir(tempdir)
+    genome_report.refresh_myvariant_data()

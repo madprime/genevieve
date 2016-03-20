@@ -189,6 +189,14 @@ class GenomeReportDetailView(DetailView):
         queryset = super(GenomeReportDetailView, self).get_queryset()
         return queryset.filter(user=self.request.user)
 
+    def get_context_data(self, **kwargs):
+        context = super(GenomeReportDetailView, self).get_context_data(**kwargs)
+        # Explicitly adding variants sorted by allele frequency.
+        context['genomevariants'] = sorted(
+            self.object.genomevariant_set.all(),
+            key=lambda gv: gv.variant.allele_frequency if gv.variant.allele_frequency else 1)
+        return context
+
 
 class GenomeReportReprocessView(DetailView):
     model = GenomeReport

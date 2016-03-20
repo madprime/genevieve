@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 import os
 
+import dj_database_url
 from django.conf import global_settings
 from env_tools import apply_env
 
@@ -51,16 +52,16 @@ INSTALLED_APPS = (
     'debug_toolbar',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
+TEMPLATE_CONTEXT_PROCESSORS = [
     # Required by 'allauth' template tags
     'django.core.context_processors.request',
 
     # 'allauth' specific context processors
     'allauth.account.context_processors.account',
-) + global_settings.TEMPLATE_CONTEXT_PROCESSORS
+] + global_settings.TEMPLATE_CONTEXT_PROCESSORS
 
 
-AUTHENTICATION_BACKENDS = (
+AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin
     'django.contrib.auth.backends.ModelBackend',
 
@@ -69,7 +70,7 @@ AUTHENTICATION_BACKENDS = (
 
     # custom backend to enable login via GenNotes account
     'genevieve_client.auth_backends.AuthenticationBackend',
-) + global_settings.AUTHENTICATION_BACKENDS
+] + global_settings.AUTHENTICATION_BACKENDS
 
 
 MIDDLEWARE_CLASSES = (
@@ -107,12 +108,10 @@ WSGI_APPLICATION = 'genevieve_client.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
+# Use DATABASE_URL to do database setup, for a local Postgres database it would
+# look like: postgres://localhost/database_name
+DATABASES = {}
+DATABASES['default'] = dj_database_url.config()
 
 
 # Internationalization

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load report_tags %}
 
 {% block js_scripts %}
 <script src="/static/js/genomereport_detail.js"></script>
@@ -12,10 +13,10 @@
 <a class='btn btn-default btn-sm pull-right' href="{% url 'genome_report_reprocess' genomereport.id %}">Reprocess genome</a>
 <div id="download-as-csv"></div>
 
-<table id="genome-report" style="table-layout:fixed">
+<table id="genome-report" class="table" style="table-layout:fixed">
   <thead>
     <tr>
-      <th style="width:150px;word-wrap:break-word;">Variant</th>
+      <th style="width:180px;word-wrap:break-word;">Variant</th>
       <th width="100px">Allele Freq</th>
       <th width="100px">Zygosity</th>
       <th>Info</th>
@@ -23,12 +24,52 @@
   </thead>
 
   <tbody>
-  {% for gv in genomereport.genomevariant_set.all|slice:"100" %}
+  {% for gv in genomevariants|slice:"100" %}
   <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
-    <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">{{ gv.variant.b37_id }}</td>
-    <td class="gv-freq-cell" width="100px">Unknown</td>
+    <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">
+      <p>
+        {{ gv.variant.b37_hgvs_id }}
+      </p>
+      {% if gv.variant.myvariant_clinvar %}
+        <p><small><a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ gv.variant.myvariant_clinvar.variant_id }}/">
+          {{ gv.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
+        </a></small></p>
+      {% endif %}
+    </td>
+    <td class="gv-freq-cell">
+      {% with gv.variant.allele_frequency as freq %}
+      {% if freq %}
+        {{ freq|floatformat:'-6' }}
+      {% else %}
+        Unknown
+      {% endif %}{% endwith %}</td>
     <td width="100px">{{ gv.get_zygosity_display }}</td>
-    <td id="{{ gv.variant.id }}" class="gv-info-cell"></td>
+    <td id="{{ gv.variant.id }}" class="gv-info-cell">
+      <table>
+        <tbody>
+          <tr>
+            <td style="padding-right:20px;width:85%;">
+              <table class="table">
+                <tbody>
+                  {% for rcv in gv.variant.myvariant_clinvar.rcv %}
+                  <tr>
+                    <td>
+                      <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}/">
+                        {{ rcv.conditions.name }}</a>
+                      <br>{{ rcv.clinical_significance }}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+            <td>
+              Create notes
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </td>
   </tr>
   {% endfor %}
   </tbody>
