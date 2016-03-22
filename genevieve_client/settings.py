@@ -104,14 +104,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'genevieve_client.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
 # Use DATABASE_URL to do database setup, for a local Postgres database it would
 # look like: postgres://localhost/database_name
 DATABASES = {}
-DATABASES['default'] = dj_database_url.config()
+DATABASES['default'] = dj_database_url.config(conn_max_age=500)
 
 
 # Internationalization
@@ -146,6 +145,7 @@ MEDIA_ROOT = os.path.join(LOCAL_STORAGE_ROOT, 'upload/')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
+STATIC_ROOT = os.path.join(BASE_DIR, 'static-files')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),

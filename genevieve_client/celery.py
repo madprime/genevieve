@@ -16,7 +16,8 @@ from django.conf import settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE',
                       'genevieve_client.settings')
 
-app = Celery('genevieve_client')
+broker_url = os.getenv('CELERY_BROKER_URL', 'amqp://')
+app = Celery('genevieve_client', broker=broker_url)
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
