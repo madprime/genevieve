@@ -61,8 +61,11 @@ class Variant(models.Model):
             return ac * 1.0 / an
         elif self.myvariant_dbsnp:
             for item in self.myvariant_dbsnp['alleles']:
-                if item['allele'] == self.var_allele:
-                    return item['freq']
+                try:
+                    if item['allele'] == self.var_allele:
+                        return item['freq']
+                except KeyError:
+                    pass
         return None
 
     @property
