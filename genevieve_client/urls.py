@@ -7,7 +7,7 @@ from .views import (AuthorizeGennotesView,
                     GenomeReportDetailView,
                     GenomeReportListView,
                     GenomeReportReprocessView,
-                    GenevieveVariantEditView)
+                    GenevieveNotesEditView)
 
 urlpatterns = [
     # Examples:
@@ -26,8 +26,9 @@ urlpatterns = [
     url(r'genome_report/(?P<pk>[0-9]+)/$', GenomeReportDetailView.as_view(),
         name='genome_report_detail'),
 
-    url(r'variant/(?P<pk>[0-9]+)/$', GenevieveVariantEditView.as_view(),
-        name='variant_edit'),
+    url(r'notes/(?P<pk>[0-9]+)/(?P<relid>[0-9]+)/$',
+        GenevieveNotesEditView.as_view(),
+        name='notes_edit'),
 
     url(r'authorize_gennotes/', AuthorizeGennotesView.as_view(),
         name='authorize_gennotes'),

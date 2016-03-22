@@ -24,7 +24,7 @@
   </thead>
 
   <tbody>
-  {% for gv in genomevariants|slice:"100" %}
+  {% for gv in genomevariants %}
   <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
     <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">
       <p>
@@ -64,7 +64,7 @@
               </table>
             </td>
             <td>
-              Create notes
+              <a href="{% url 'notes_edit' gv.variant.id 0 %}">Create notes</a>
             </td>
           </tr>
         </tbody>

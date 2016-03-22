@@ -16,7 +16,7 @@ from django.views.generic import (DetailView, FormView, ListView,
                                   RedirectView, TemplateView, UpdateView)
 
 from .models import GennotesEditor, GenomeReport, Variant
-from .forms import GenomeUploadForm, GenevieveEditForm
+from .forms import GenomeUploadForm
 from .tasks import produce_genome_report
 
 User = get_user_model()
@@ -190,11 +190,28 @@ class GenomeReportDetailView(DetailView):
         return queryset.filter(user=self.request.user)
 
     def get_context_data(self, **kwargs):
+        """
+        Add GenomeReport variants to context, sorted by allele frequency.
+
+        Sorting by allele frequency behaves "smartly" with respect to
+        missing frequency information. If the variant allele matches reference
+        sequence, the frequency is "Unknown" but sorted as if it were 1
+        (i.e. probably high and uninteresting). But if the variant doesn't
+        match reference, the "Unknown" frequency is sorted as if it were 0
+        (because it may actually be quite rare).
+
+        Also, filter out any variants that don't have ClinVar data from
+        MyVariant.info. (Inconsistency may be due to lag and changes within
+        ClinVar monthly updates.)
+        """
         context = super(GenomeReportDetailView, self).get_context_data(**kwargs)
-        # Explicitly adding variants sorted by allele frequency.
+        genome_variants = [gv for gv in self.object.genomevariant_set.all() if
+                           gv.variant.myvariant_clinvar]
         context['genomevariants'] = sorted(
-            self.object.genomevariant_set.all(),
-            key=lambda gv: gv.variant.allele_frequency if gv.variant.allele_frequency else 1)
+            genome_variants,
+            key=lambda gv: (
+                gv.variant.allele_frequency if gv.variant.allele_frequency else
+                1 if gv.variant.ref_allele == gv.variant.var_allele else 0))
         return context
 
 
@@ -215,54 +232,72 @@ class GenomeReportReprocessView(DetailView):
         return HttpResponseRedirect(return_url)
 
 
-class GenevieveVariantEditView(SingleObjectMixin,
-                               SingleObjectTemplateResponseMixin,
-                               FormView):
+class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     model = Variant
-    form_class = GenevieveEditForm
-    initial = {'genevieve_inheritance': 'unknown',
+    initial = {'genevieve_effect': 'causal',
+               'genevieve_inheritance': 'unknown',
                'genevieve_evidence': 'reported'}
+    template_name = 'genevieve_client/notes_edit.html'
+    CHOICES = {
+        'genevieve_effect': (
+            ('causal', 'Causes this trait or disease'),
+            ('risk_factor', 'Increased risk of this trait or disease'),
+            ('protective', 'Prevents or reduces risk of this trait or disease'),
+        ),
+        'genevieve_inheritance': (
+            ('recessive', 'Recessive'),
+            ('dominant', 'Dominant'),
+            ('additive', 'Additive'),
+            ('unknown', 'Other, unknown, or not applicable'),
+        ),
+        'genevieve_evidence': (
+            ('well_established', 'Well-established'),
+            ('reported', 'Reported'),
+            ('contradicted', 'Contradicted'),
+        )
+    }
+
+    def _get_genevieve_relations(self):
+        self.genevieve_other_relations = []
+        self.genevieve_notes_data = {}
+        if self.gennotes_var_data:
+            for relation in self.gennotes_var_data['relation_set']:
+                if relation['tags']['type'] == 'genevieve-notes':
+                    if self.relid != '0' and relation['url'].endswith(
+                            '/api/relation/{}/'.format(self.relid)):
+                        self.genevieve_genevieve_relation = relation
+                    else:
+                        self.genevieve_other_relations.append(relation)
+
+    def _get_gennotes_variant(self):
+        b37_lookup = 'b37-{}-{}-{}-{}'.format(
+            self.object.chromosome, self.object.pos,
+            self.object.ref_allele, self.object.var_allele)
+        gennotes_var_req = requests.get(
+            '{}/api/variant/{}'.format(
+                settings.GENNOTES_SERVER, b37_lookup))
+        if gennotes_var_req.status_code == 200:
+            self.gennotes_var_data = gennotes_var_req.json()
+        self.gennotes_var_data = None
 
     def _get_gennotes_data(self):
         self.object = self.get_object()
-        b37_lookup = '-'.join([str(x) for x in [
-            'b37', self.object.chromosome, self.object.pos,
-            self.object.ref_allele, self.object.var_allele]])
-        gennotes_data = requests.get(
-            '{}/api/variant/{}'.format(
-                settings.GENNOTES_SERVER, b37_lookup)).json()
-        relation_data = gennotes_data['relation_set'][0]
-        if 'relation_id' in self.request.GET:
-            relation_url = (
-                '{}/api/relation/{}/'.format(
-                    settings.GENNOTES_SERVER, self.request.GET['relation_id']))
-            try:
-                relation_data = [r for r in gennotes_data['relation_set'] if
-                                 r['url'] == relation_url][0]
-            except IndexError:
-                relation_data = None
-        re_relation_id = r'://[^/]+/api/relation/([0-9]+)/'
-        relation_id = relation_version = None
-        if relation_data:
-            if re.search(re_relation_id, relation_data['url']):
-                relation_id = re.search(
-                    re_relation_id, relation_data['url']).groups()[0]
-                relation_version = relation_data['current_version']
-            else:
-                relation_data = None
-        self.gennotes_data = {
-            'gennotes_data': gennotes_data,
-            'relation_data': relation_data,
-            'relation_id': relation_id,
-            'relation_version': relation_version
-        }
+        self._get_gennotes_variant()
+        self._get_genevieve_relations()
 
     def get_context_data(self, *args, **kwargs):
         self.object = self.get_object()
-        kwargs.update(self.gennotes_data)
-        return super(GenevieveVariantEditView,
-                     self).get_context_data(*args, **kwargs)
+        context = super(GenevieveNotesEditView,
+                        self).get_context_data(*args, **kwargs)
+        self._get_gennotes_data()
+        kwargs.update({
+            'gennotes_data': self.gennotes_var_data,
+            'genevieve_other_relations': self.genevieve_other_relations,
+            'genevieve_relation': self.genevieve_notes_data,
+        })
+        return context
 
+    """
     def get_success_url(self):
         self.object = self.get_object()
         return reverse('variant_edit', args=[self.object.id])
@@ -294,7 +329,7 @@ class GenevieveVariantEditView(SingleObjectMixin,
         relation_version = self.request.POST['relation_version']
         access_token = self.request.user.gennoteseditor.get_access_token()
         relation_uri = ('{}/api/relation/{}/'.format(settings.GENNOTES_SERVER,
-                                                    relation_id))
+                                                     relation_id))
 
         # Assemble updated Genevieve tag data.
         tags = {}
@@ -325,3 +360,4 @@ class GenevieveVariantEditView(SingleObjectMixin,
         print response_patch.status_code
         print response_patch.text
         return super(GenevieveVariantEditView, self).form_valid(form)
+    """
