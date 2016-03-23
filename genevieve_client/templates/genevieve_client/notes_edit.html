@@ -40,7 +40,11 @@
         {% if variant.myvariant_exac %}
         <a href="http://exac.broadinstitute.org/variant/{{ variant.b37_exac_id }}">{{ variant.allele_frequency|floatformat:'-6' }}</a>
         {% else %}
-        {{ variant.allele_frequency|floatformat:'-6' }}
+          {% if variant.allele_frequency %}
+          {{ variant.allele_frequency|floatformat:'-6' }}
+          {% else %}
+          Unknown
+          {% endif %}
         {% endif %}
     </p>
     {% if variant.myvariant_clinvar.rcv %}
@@ -64,7 +68,7 @@
     This variant is reported to affect a
       <select class="form-control">
         <option>disease</option>
-        <option>physical trait</option>
+        <option>trait</option>
         <option>other</option>
       </select>.
   </div><br>
@@ -79,9 +83,10 @@
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     Disease or trait effect:
-    <input type="text" class="form-control" id="exampleInputName2"
-      placeholder="Name or brief description" style="min-width:25%;">
-    <span class="text-muted">(e.g. "Sickle cell disease" or "Breast or ovarian cancer")
+    <input type="text" class="form-control" id="exampleinput"
+      placeholder="Name or brief description" style="min-width:50%;">
+    <br>
+    <span class="text-muted">e.g. "Sickle cell disease" or "Breast and ovarian cancer". The ClinVar name is often appropriate, if available.
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     Reported inheritance:
@@ -101,6 +106,18 @@
     </select>
   </div>
   <br>
+  {% if variant.myvariant_clinvar.rcv %}
+  <div class="checkbox" style="margin-bottom:15px;">
+    Clinvar records related to this reported effect:<br>
+    {% for rcv in variant.myvariant_clinvar.rcv %}
+      <label style="padding-left:20px;">
+        <input type="checkbox">
+          <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}">
+            {{ rcv.clinical_significance }}: {{ rcv.conditions.name }}</a>
+      </label>
+    {% endfor %}
+  </div><br>
+  {% endif %}
   <span class="text-muted"><b>Notes about this reported effect</b></span>
   <textarea class="form-horizonal form-control" rows="6"
     style="min-width:100%;margin-bottom:15px;"></textarea>
