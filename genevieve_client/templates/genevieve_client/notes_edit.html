@@ -3,93 +3,114 @@
 {% load gennotes_helpers %}
 
 {% block content %}
-<h3>Add notes for variant<br></h3>
-
+{% if genevieve_relation %}
+<h2>Edit Genevieve notes...</h2>
+{% else %}
+<h2>Create notes for a variant effect...</h2>
+{% endif %}
 <p>
-  <b>Position: </b> chr{{ variant.get_chromosome_display }}:{{ variant.pos }}
-  <br>
-  <b>Reference sequence: </b> {{ variant.ref_allele }}
-  <br>
-  <b>Variant sequence: </b> {{ variant.var_allele }}
-  <br>
-  <b>Allele frequency: </b>
-    {% if variant.myvariant_exac %}
-    <a href="http://exac.broadinstitute.org/variant/{{ variant.b37_exac_id }}">{{ variant.allele_frequency|floatformat:'-6' }}</a>
-    {% else %}
-    {{ variant.allele_frequency|floatformat:'-6' }}
+  Use the form below to add notes for a reported variant effect to Genevieve.
+  Above the form, we've provided some general information about this variant,
+  including links to potentially useful external resources.
+</p>
+<h3>Variant information</h3>
+<div class="row">
+  <div class="col-md-6">
+    <b>Position: </b> chr{{ variant.get_chromosome_display }}:{{ variant.pos }}
+    <br>
+    <b>Reference sequence: </b> {{ variant.ref_allele }}
+    <br>
+    <b>Variant sequence: </b> {{ variant.var_allele }}
+    <br>
+    <b>HGVS ID: </b> {{variant.b37_hgvs_id}}
+    {% if variant.myvariant_clinvar %}
+    <br>
+    <b>Clinvar preferred name: </b> <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ variant.myvariant_clinvar.variant_id }}/">{{ variant.myvariant_clinvar.rcv.0.preferred_name }}</a>
+    <br>
+    <b>Gene symbol: </b> <a href="http://www.ncbi.nlm.nih.gov/gene/{{ variant.myvariant_clinvar.gene.id }}">{{ variant.myvariant_clinvar.gene.symbol }}</a>
+    <br>
     {% endif %}
-  <br>
-  <b>HGVS ID: </b> {{variant.b37_hgvs_id}}
-  {% if variant.myvariant_clinvar %}
-  <br>
-  <b>Clinvar preferred name: </b> <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ variant.myvariant_clinvar.variant_id }}/">{{ variant.myvariant_clinvar.rcv.0.preferred_name }}</a>
-  <br>
-  <b>Gene symbol: </b> <a href="http://www.ncbi.nlm.nih.gov/gene/{{ variant.myvariant_clinvar.gene.id }}">{{ variant.myvariant_clinvar.gene.symbol }}</a>
-  {% endif %}
-</p>
-<p>
-  clinvar: {{ variant.myvariant_clinvar }}
-</p>
-<p>
-  exac: {{ variant.myvariant_exac }}
-</p>
-<p>
-  dbsnp: {{ variant.myvariant_dbsnp }}
-</p>
-<h4>Nomenclature</h4>
-<div style="margin-left:2%">
-  <p>
-    <b>ClinVar preferred name:</b>
-  </p>
-  <b>Gene:</b> GENESYMBOL
-  <small class="text-muted">("GENENAME")</small>
+    {% if variant.myvariant_dbsnp %}
+    <b>dbSNP: </b> <a href="http://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs={{ variant.myvariant_dbsnp.rsid }}">{{ variant.myvariant_dbsnp.rsid }}</a>
+    {% endif %}
+  </div>
+  <div class="col-md-6">
+    <p style="margin-top:10px;">
+      <b>Allele frequency: </b>
+        {% if variant.myvariant_exac %}
+        <a href="http://exac.broadinstitute.org/variant/{{ variant.b37_exac_id }}">{{ variant.allele_frequency|floatformat:'-6' }}</a>
+        {% else %}
+        {{ variant.allele_frequency|floatformat:'-6' }}
+        {% endif %}
+    </p>
+    {% if variant.myvariant_clinvar.rcv %}
+    Clinvar records for this variant:<br>
+      {% for rcv in variant.myvariant_clinvar.rcv %}
+      <div style="padding-left:20px;">
+        <b>{{ rcv.clinical_significance }}: </b>
+        <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}/">{{ rcv.conditions.name }}</a></div>
+      {% endfor %}
+    {% endif %}
+  </div>
 </div>
-<h4>Allele frequency</h4>
-<div style="margin-left:2%">
-  <p>
-    Frequency
-  </p>
-</div>
-<h3 style="border-bottom-style:solid;border-bottom:1px solid #eee">
-  ClinVar Accession
-  <small class="text-muted">
-    (<a href="http://www.ncbi.nlm.nih.gov/clinvar/ACCESSION/">ACCESSION</a>)
-  </small>
-</h3>
-<h4>Effect</h4>
-<div style="margin-left:2%">
-  <p>
-    DISEASEORTRAIT
-  </p>
-  <p>
-    <b>Significance:</b>
-    CLINVARSIG
-  </p>
-</div>
-<h4>Citations</h4>
-<div style="margin-left:2%">
-  No citations from ClinVar recorded in GenNotes.
-</div>
-<h3 style="border-bottom-style:solid;border-bottom:1px solid #eee">Genevieve Notes</h3>
-<p>
-  <b>Genevieve notes are stored and publicly shared in GenNotes.</b> This is a
-  collaborative method for sharing and updating knowledge.
-</p>
-<div style="margin-left:2%">
-No Genevieve notes recorded yet!
-</div>
-<h4>Add/update Genevieve notes regarding this ClinVar accession</h4>
-<p>
-  <b>By submitting edits, you agree to waive copyright and release submitted
-  material as public domain using the Creative Commons CC0 1.0 Public Domain
-  Dedication.</b> Do not submit material if you do not have the rights to make
-  this waiver (e.g. where copyright is held by someone else).
-</p>
+<hr>
 
-<form action="{% url 'notes_edit' variant.id 0 %}" method="post" style="margin-bottom:30px;">
+<form action="{% url 'notes_edit' variant.id 0 %}" method="post"
+  class="form-inline">
   {% csrf_token %}
   <input type="hidden" name="relation_id" value="">
   <input type="hidden" name="relation_version" value="">
-  <input type="submit" value="Submit edit to GenNotes">
+  <div class="form-group" style="margin-bottom:15px;">
+    This variant is reported to affect a
+      <select class="form-control">
+        <option>disease</option>
+        <option>physical trait</option>
+        <option>other</option>
+      </select>.
+  </div><br>
+  <div class="form-group"  style="margin-bottom:15px;">
+    The variant is reported to
+    <select class="form-control">
+      <option>cause</option>
+      <option>increase risk for</option>
+      <option>prevent or reduce risk for</option>
+    </select>
+    this disease or trait.
+  </div><br>
+  <div class="form-group" style="margin-bottom:15px;">
+    Disease or trait effect:
+    <input type="text" class="form-control" id="exampleInputName2"
+      placeholder="Name or brief description" style="min-width:25%;">
+    <span class="text-muted">(e.g. "Sickle cell disease" or "Breast or ovarian cancer")
+  </div><br>
+  <div class="form-group" style="margin-bottom:15px;">
+    Reported inheritance:
+    <select class="form-control">
+      <option>Dominant</option>
+      <option>Recessive</option>
+      <option>Additive</option>
+      <option selected>Other or unknown</option>
+    </select>
+  </div><br>
+  <div class="form-group" style="margin-bottom:15px;">
+    This effect should be considered:
+    <select class="form-control">
+      <option>well-established</option>
+      <option selected>reported</option>
+      <option>contradicted</option>
+    </select>
+  </div>
+  <br>
+  <span class="text-muted"><b>Notes about this reported effect</b></span>
+  <textarea class="form-horizonal form-control" rows="6"
+    style="min-width:100%;margin-bottom:15px;"></textarea>
+  <p>
+    <b>By submitting edits, you agree to waive copyright and release submitted
+    material as public domain using the Creative Commons CC0 1.0 Public Domain
+    Dedication.</b> Do not submit material if you do not have the rights to make
+    this waiver (e.g. where copyright is held by someone else).
+  </p>
+  <button type="submit" class="btn btn-primary" style="margin-bottom:15px;">
+    Save new variant notes</button>
 </form>
 {% endblock content %}
