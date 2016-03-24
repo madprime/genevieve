@@ -15,7 +15,7 @@ from django.views.generic.detail import (SingleObjectMixin,
 from django.views.generic import (DetailView, FormView, ListView,
                                   RedirectView, TemplateView, UpdateView)
 
-from .models import GennotesEditor, GenomeReport, Variant
+from .models import GennotesEditor, GenomeReport, OpenHumansUser, Variant
 from .forms import GenomeUploadForm
 from .tasks import produce_genome_report
 
@@ -56,6 +56,75 @@ class HomeView(TemplateView):
             'gennotes_signup_url': GennotesEditor.GENNOTES_SIGNUP_URL,
         })
         return super(HomeView, self).get_context_data(**kwargs)
+
+
+class AuthorizeOpenHumansView(RedirectView):
+    template_name = 'genevieve_client/complete_openhumans_auth'
+    pattern_name = 'home'
+
+    @staticmethod
+    def _exchange_code(code):
+        token_response = requests.post(
+            GennotesEditor.GENNOTES_TOKEN_URL,
+            data={
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': OpenHumansUser.REDIRECT_URI
+            },
+            auth=requests.auth.HTTPBasicAuth(
+                OpenHumansUser.CLIENT_ID, OpenHumansUser.CLIENT_SECRET
+            )
+        )
+        return token_response.json()
+
+    @staticmethod
+    def _get_user_data(access_token):
+        user_data_response = requests.get(
+            OpenHumansUser.USER_URL,
+            headers={'Authorization': 'Bearer {}'.format(access_token)})
+        return user_data_response.json()
+
+    def get(self, request, *args, **kwargs):
+        if 'code' in request.GET:
+            token_data = self._exchange_code(request.GET['code'])
+            user_data = self._get_user_data(token_data['access_token'])
+
+            try:
+                openhumansuser = OpenHumansUser.objects.get(
+                    connected_id=user_data['project_member_id'])
+                openhumansuser.access_token = token_data['access_token']
+                openhumansuser.refresh_token = token_data['refresh_token']
+                openhumansuser.token_expiration = (
+                    datetime.datetime.now() +
+                    datetime.timedelta(seconds=token_data['expires_in']))
+                openhumansuser.save()
+                user = openhumansuser.user
+                user.backend = (
+                    'genevieve_client.auth_backends.AuthenticationBackend')
+                login(request, user)
+                messages.success(request, ('Logged in via Open Humans.'))
+            except OpenHumansUser.DoesNotExist:
+                new_username = make_unique_username(
+                    base='openhumans_{}'.format(user_data['project_member_id']))
+                new_user = User(username=new_username)
+                new_user.save()
+                openhumansuser = OpenHumansUser(
+                    user=new_user,
+                    connected_id=user_data['project_member_id'],
+                    access_token=token_data['access_token'],
+                    refresh_token=token_data['refresh_token'],
+                    token_expiration=(
+                        datetime.datetime.now() +
+                        datetime.timedelta(seconds=token_data['expires_in'])))
+                openhumansuser.save()
+                new_user.backend = (
+                    'genevieve_client.auth_backends.AuthenticationBackend')
+                login(request, new_user)
+                messages.success(request, 'Logged in via Open Humans.')
+        else:
+            messages.error(request, 'Failed to authorize Open Humans!')
+        return super(AuthorizeGennotesView, self).get(
+            request, *args, **kwargs)
 
 
 class AuthorizeGennotesView(RedirectView):

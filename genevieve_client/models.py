@@ -138,33 +138,24 @@ class GenomeVariant(models.Model):
                                          ('Hem', 'Hemizygous')))
 
 
-class GennotesEditor(models.Model):
+class ConnectedUser(models.Model):
     user = models.OneToOneField(User)
-    gennotes_username = models.CharField(max_length=30, blank=True)
-    gennotes_id = models.PositiveIntegerField(null=False, unique=True)
-    gennotes_email = models.EmailField()
     access_token = models.CharField(max_length=30, blank=True)
     refresh_token = models.CharField(max_length=30, blank=True)
     token_expiration = models.DateTimeField(null=True)
-    genome_upload_enabled = models.BooleanField(default=False)
-    genome_storage_enabled = models.BooleanField(default=False)
+    connected_id = models.CharField(null=False, max_length=30, unique=True)
 
-    GENNOTES_SERVER = settings.GENNOTES_SERVER
-    GENNOTES_AUTH_URL = (
-        GENNOTES_SERVER + '/oauth2-app/authorize?client_id={}&'
-        'response_type=code'.format(settings.GENNOTES_CLIENT_ID))
-    GENNOTES_SIGNUP_URL = GENNOTES_SERVER + '/accounts/signup/'
-    GENNOTES_TOKEN_URL = GENNOTES_SERVER + '/oauth2-app/token/'
-    GENNOTES_USER_URL = GENNOTES_SERVER + '/api/me/'
+    class Meta:
+        abstract = True
 
     def _refresh_tokens(self):
         response_refresh = requests.post(
-            self.GENNOTES_TOKEN_URL,
+            self.TOKEN_URL,
             data={
                 'grant_type': 'refresh_token',
                 'refresh_token': self.refresh_token},
             auth=requests.auth.HTTPBasicAuth(
-                settings.GENNOTES_CLIENT_ID, settings.GENNOTES_CLIENT_SECRET))
+                self.CLIENT_ID, self.CLIENT_SECRET))
         token_data = response_refresh.json()
         self.access_token = token_data['access_token']
         self.refresh_token = token_data['refresh_token']
@@ -190,6 +181,56 @@ class GennotesEditor(models.Model):
         if self._token_expired(offset=30):
             self._refresh_tokens()
         return self.access_token
+
+
+class OpenHumansUser(ConnectedUser):
+    """
+    Connect an Open Humans member account.
+
+    The project_member_id is stored in the 'connected_id' model field.
+    """
+    openhumans_username = models.CharField(max_length=30, blank=True)
+    genome_upload_enabled = models.BooleanField(default=False)
+    genome_storage_enabled = models.BooleanField(default=False)
+
+    CLIENT_ID = settings.OPENHUMANS_CLIENT_ID
+    CLIENT_SECRET = settings.OPENHUMANS_CLIENT_SECRET
+    BASE_URL = settings.OPENHUMANS_URL
+    AUTH_URL = (
+        BASE_URL + '/direct-sharing/projects/oauth2/authorize/'
+        '?client_id={}&response_type=code'.format(CLIENT_ID))
+    SIGNUP_URL = BASE_URL + '/account/signup/'
+    TOKEN_URL = BASE_URL + '/oauth2/token/'
+    REDIRECT_URI = settings.OPENHUMANS_REDIRECT_URI
+    OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
+
+    def __unicode__(self):
+        return self.openhumans_username
+
+    @property
+    def project_member_id(self):
+        return self.connected_id
+
+
+class GennotesEditor(ConnectedUser):
+    """
+    Connect a GenNotes account.
+
+    The GenNotes user ID is stored in the 'connected_id' model field.
+    """
+    gennotes_username = models.CharField(max_length=30, blank=True)
+    gennotes_email = models.EmailField()
+
+    CLIENT_ID = settings.GENNOTES_CLIENT_ID
+    CLIENT_SECRET = settings.GENNOTES_CLIENT_SECRET
+    BASE_URL = settings.GENNOTES_SERVER
+    AUTH_URL = (
+        BASE_URL + '/oauth2-app/authorize?client_id={}&'
+        'response_type=code'.format(CLIENT_ID))
+    SIGNUP_URL = BASE_URL + '/accounts/signup/'
+    TOKEN_URL = BASE_URL + '/oauth2-app/token/'
+    REDIRECT_URI = settings.GENNOTES_REDIRECT_URI
+    GENNOTES_USER_URL = BASE_URL + '/api/me/'
 
     def __unicode__(self):
         return self.gennotes_username
