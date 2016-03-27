@@ -26,7 +26,7 @@ urlpatterns = [
     url(r'genome_report/(?P<pk>[0-9]+)/$', GenomeReportDetailView.as_view(),
         name='genome_report_detail'),
 
-    url(r'notes/(?P<pk>[0-9]+)/(?P<relid>[0-9]+)/$',
+    url(r'notes/(?P<pk>[0-9]+)/(?P<relid>[0-9]+)/(?P<version>[0-9]+)/$',
         GenevieveNotesEditView.as_view(),
         name='notes_edit'),
 

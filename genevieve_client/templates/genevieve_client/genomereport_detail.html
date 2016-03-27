@@ -24,51 +24,92 @@
   </thead>
 
   <tbody>
-  {% for gv in genomevariants %}
-  <tr class="gv-row" id="gv-b37-{{ gv.variant.b37_id }}">
+  {% for row_data in report_rows %}
+  <tr class="gv-row" id="gv-b37-{{ row_data.variant.b37_id }}">
     <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">
       <p>
-        {{ gv.variant.b37_hgvs_id }}
+        {{ row_data.variant.b37_hgvs_id }}
       </p>
       {% if gv.variant.myvariant_clinvar %}
         <p><small><a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ gv.variant.myvariant_clinvar.variant_id }}/">
-          {{ gv.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
+          {{ row_data.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
         </a></small></p>
       {% endif %}
     </td>
     <td class="gv-freq-cell">
-      {% with gv.variant.allele_frequency as freq %}
+      {% with row_data.variant.allele_frequency as freq %}
       {% if freq %}
         {{ freq|floatformat:'-6' }}
       {% else %}
         Unknown
       {% endif %}{% endwith %}</td>
-    <td width="100px">{{ gv.get_zygosity_display }}</td>
+    <td width="100px">{{ row_data.genome_variant.get_zygosity_display }}</td>
     <td id="{{ gv.variant.id }}" class="gv-info-cell">
-      <table>
-        <tbody>
-          <tr>
-            <td style="padding-right:20px;width:85%;">
-              <table class="table">
-                <tbody>
-                  {% for rcv in gv.variant.myvariant_clinvar.rcv %}
-                  <tr>
-                    <td>
-                      <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}/">
-                        {{ rcv.conditions.name }}</a>
-                      <br>{{ rcv.clinical_significance }}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </td>
-            <td>
-              <a href="{% url 'notes_edit' gv.variant.id 0 %}">Create notes</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      {% for item in row_data.gennotes_data %}
+        <div class="panel panel-info">
+          <div class="panel-body">
+            <table>
+              <tbody>
+                <tr>
+                  <th>
+                    {% if item.tags.category == 'disease' %}
+                      Disease:
+                    {% else %}Trait:{% endif %}
+                  </th>
+                  <td> {{ item.name }}</td>
+                </tr>
+                <tr>
+                  <th>
+                    Inheritance:
+                  </th>
+                  <td>{{ item.tags.inheritance }}</td>
+                </tr>
+                <tr>
+                  <th>Evidence:</th>
+                  <td>{{ item.tags.evidence }}</td>
+                </tr>
+                <tr>
+                  <th>Significance:</th>
+                  <td>{{ item.tags.significance }}</td>
+                </tr>
+                {% if item.tags.clinvar_rcv_records %}
+                <tr>
+                  <th>Clinvar records:</th>
+                  <td><ul>
+                    {% for rcv in item.tags.clinvar_rcv_records %}
+                    <li>{{ rcv.conditions.name }}</li>
+                    {% endfor %}
+                  </ul></td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <th>Notes:</th>
+                  <td>
+                    <p>{{ item.tags.notes }}</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id item.current_version %}">
+              Edit these notes</a>
+          </div>
+        </div>
+      {% endfor %}
+      {% if row_data.unclaimed_rcvs %}
+        <b>Clinvar entries without associated notes:</b>
+        <ul>
+          {% for rcv, rcv_data in row_data.unclaimed_rcvs.items %}
+          <li>
+            {{ rcv_data.clinical_significance }}:
+            <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv_data.accession }}/">
+              {{ rcv_data.conditions.name }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <p>
+        <a href="{% url 'notes_edit' row_data.variant.id 0 0 %}">Add notes for a new effect</a>
+      </p>
     </td>
   </tr>
   {% endfor %}

@@ -59,50 +59,53 @@
 </div>
 <hr>
 
-<form action="{% url 'notes_edit' variant.id 0 %}" method="post"
+<form action="{% url 'notes_edit' variant.id relid version %}" method="post"
   class="form-inline">
   {% csrf_token %}
-  <input type="hidden" name="relation_id" value="">
-  <input type="hidden" name="relation_version" value="">
+  {% if genevieve_relation %}
+    <input type="hidden" name="relation_id" value="">
+    <input type="hidden" name="relation_version" value="">
+  {% endif %}
   <div class="form-group" style="margin-bottom:15px;">
     This variant is reported to affect a
-      <select class="form-control">
-        <option>disease</option>
-        <option>trait</option>
-        <option>other</option>
+      <select class="form-control" name="genevieve_effect_category">
+        <option value="disease">disease</option>
+        <option value="trait">trait</option>
+        <option value="other">other</option>
       </select>.
   </div><br>
-  <div class="form-group"  style="margin-bottom:15px;">
+  <div class="form-group" style="margin-bottom:15px;">
     The variant is reported to
-    <select class="form-control">
-      <option>cause</option>
-      <option>increase risk for</option>
-      <option>prevent or reduce risk for</option>
+    <select class="form-control" name="genevieve_effect_significance">
+      <option value="causal">cause</option>
+      <option value="risk_factor">increase risk for</option>
+      <option value="protective">prevent or reduce risk for</option>
     </select>
     this disease or trait.
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     Disease or trait effect:
-    <input type="text" class="form-control" id="exampleinput"
+    <input type="text" class="form-control" name="genevieve_effect_name"
       placeholder="Name or brief description" style="min-width:50%;">
     <br>
-    <span class="text-muted">e.g. "Sickle cell disease" or "Breast and ovarian cancer". The ClinVar name is often appropriate, if available.
+    <span class="text-muted">e.g. "Sickle cell disease" or "Breast and ovarian
+      cancer". The ClinVar name is often appropriate, if available.</span>
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     Reported inheritance:
-    <select class="form-control">
-      <option>Dominant</option>
-      <option>Recessive</option>
-      <option>Additive</option>
-      <option selected>Other or unknown</option>
+    <select class="form-control" name="genevieve_effect_inheritance">
+      <option value="dominant">Dominant</option>
+      <option value="recessive">Recessive</option>
+      <option value="additive">Additive</option>
+      <option value="other_or_unknown" selected>Other or unknown</option>
     </select>
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     This effect should be considered:
-    <select class="form-control">
-      <option>well-established</option>
-      <option selected>reported</option>
-      <option>contradicted</option>
+    <select class="form-control" name="genevieve_effect_evidence">
+      <option value="well-established">well-established</option>
+      <option value="reported" selected>reported</option>
+      <option value="contradicted">contradicted</option>
     </select>
   </div>
   <br>
@@ -111,15 +114,16 @@
     Clinvar records related to this reported effect:<br>
     {% for rcv in variant.myvariant_clinvar.rcv %}
       <label style="padding-left:20px;">
-        <input type="checkbox">
+        <input type="checkbox" name="genevieve_effect_clinvar_rcv_records"
+            value="{{ rcv.accession }}">
           <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}">
             {{ rcv.clinical_significance }}: {{ rcv.conditions.name }}</a>
-      </label>
+      </label><br>
     {% endfor %}
   </div><br>
   {% endif %}
   <span class="text-muted"><b>Notes about this reported effect</b></span>
-  <textarea class="form-horizonal form-control" rows="6"
+  <textarea class="form-control" rows="6" name="genevieve_effect_notes"
     style="min-width:100%;margin-bottom:15px;"></textarea>
   <p>
     <b>By submitting edits, you agree to waive copyright and release submitted

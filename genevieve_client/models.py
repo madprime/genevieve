@@ -88,6 +88,11 @@ class Variant(models.Model):
             self.var_allele
         )
 
+    @property
+    def b37_gennotes_id(self):
+        return 'b37-{}-{}-{}-{}'.format(
+            self.chromosome, self.pos, self.ref_allele, self.var_allele)
+
 
 class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)

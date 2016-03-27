@@ -64,6 +64,7 @@ class AuthorizeGennotesView(RedirectView):
 
     @staticmethod
     def _exchange_code(code):
+        print GennotesEditor.GENNOTES_TOKEN_URL
         token_response = requests.post(
             GennotesEditor.GENNOTES_TOKEN_URL,
             data={
@@ -87,6 +88,7 @@ class AuthorizeGennotesView(RedirectView):
     def get(self, request, *args, **kwargs):
         if 'code' in request.GET:
             token_data = self._exchange_code(request.GET['code'])
+            print token_data
             user_data = self._get_user_data(token_data['access_token'])
 
             try:
@@ -204,14 +206,66 @@ class GenomeReportDetailView(DetailView):
         MyVariant.info. (Inconsistency may be due to lag and changes within
         ClinVar monthly updates.)
         """
-        context = super(GenomeReportDetailView, self).get_context_data(**kwargs)
-        genome_variants = [gv for gv in self.object.genomevariant_set.all() if
-                           gv.variant.myvariant_clinvar]
-        context['genomevariants'] = sorted(
-            genome_variants,
-            key=lambda gv: (
-                gv.variant.allele_frequency if gv.variant.allele_frequency else
-                1 if gv.variant.ref_allele == gv.variant.var_allele else 0))
+        context = super(
+            GenomeReportDetailView, self).get_context_data(**kwargs)
+        # Get local and GenNotes data, organized according to b37_gennotes_id
+        genome_variants = {gv.variant.b37_gennotes_id: gv for gv in
+                           self.object.genomevariant_set.all()}
+        gennotes_data = {
+            res['b37_id']: res for res in
+            requests.get('{}/api/variant/'.format(settings.GENNOTES_SERVER),
+                         params={'variant_list': json.dumps(
+                                 genome_variants.keys()),
+                                 'page_size': 10000}
+                         ).json()['results']
+            }
+        print genome_variants
+        print json.dumps(gennotes_data, indent=2)
+        variants_by_freq = sorted(
+            genome_variants.keys(),
+            key=lambda k: (
+                genome_variants[k].variant.allele_frequency if
+                genome_variants[k].variant.allele_frequency else
+                1 if (genome_variants[k].variant.ref_allele ==
+                      genome_variants[k].variant.var_allele) else 0))
+        report_rows = []
+        for var in variants_by_freq:
+            genome_variant = genome_variants[var]
+            variant = genome_variant.variant
+            row_data = {}
+            if not variant.myvariant_clinvar:
+                continue
+            rcvs = {rcv['accession']: rcv for rcv in
+                    variant.myvariant_clinvar['rcv']
+                    if not (rcv['clinical_significance'] == 'not provided' and
+                    rcv['conditions']['name'] == 'not specified')}
+            if not rcvs:
+                continue
+            unclaimed_rcvs = rcvs.copy()
+            gennotes_items = []
+            if var in gennotes_data:
+                for item in gennotes_data[var]['relation_set']:
+                    if item['tags']['type'] == 'genevieve_effect':
+                        for rcv in item['tags']['clinvar_rcv_records']:
+                            if rcv in unclaimed_rcvs:
+                                del unclaimed_rcvs[rcv]
+                        rcv_list = item['tags']['clinvar_rcv_records']
+                        rcv_dict = {rcv: rcvs[rcv] if rcv in rcvs else None
+                                    for rcv in rcv_list}
+                        item['tags']['clinvar_rcv_records'] = rcv_dict
+                        item['relation_id'] = re.search(
+                            r'/api/relation/([0-9]*)/', item['url']).groups()[0]
+                        gennotes_items.append(item)
+            row_data['genome_variant'] = genome_variant
+            row_data['variant'] = variant
+            row_data['zyg'] = genome_variant.get_zygosity_display()
+            row_data['frequency'] = variant.allele_frequency
+            row_data['unclaimed_rcvs'] = unclaimed_rcvs
+            row_data['gennotes_data'] = gennotes_items
+            report_rows.append(row_data)
+        context.update({
+            'report_rows': report_rows
+            })
         return context
 
 
@@ -234,28 +288,40 @@ class GenomeReportReprocessView(DetailView):
 
 class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     model = Variant
-    initial = {'genevieve_effect': 'causal',
-               'genevieve_inheritance': 'unknown',
-               'genevieve_evidence': 'reported'}
     template_name = 'genevieve_client/notes_edit.html'
-    CHOICES = {
-        'genevieve_effect': (
-            ('causal', 'Causes this trait or disease'),
-            ('risk_factor', 'Increased risk of this trait or disease'),
-            ('protective', 'Prevents or reduces risk of this trait or disease'),
-        ),
-        'genevieve_inheritance': (
-            ('recessive', 'Recessive'),
-            ('dominant', 'Dominant'),
-            ('additive', 'Additive'),
-            ('unknown', 'Other, unknown, or not applicable'),
-        ),
-        'genevieve_evidence': (
-            ('well_established', 'Well-established'),
-            ('reported', 'Reported'),
-            ('contradicted', 'Contradicted'),
-        )
-    }
+
+    def create_gennotes_variant(self):
+        self.object = self.get_object()
+        print self.object.b37_gennotes_id
+        requests.post(
+            '{}/api/variant/'.format(settings.GENNOTES_SERVER),
+            data=json.dumps({
+                'tags': {
+                    'chrom_b37': str(self.object.chromosome),
+                    'pos_b37': str(self.object.pos),
+                    'ref_allele_b37': self.object.ref_allele,
+                    'var_allele_b37': self.object.var_allele
+                }}),
+            headers={'Content-type': 'application/json',
+                     'Authorization': 'Bearer {}'.format(
+                         self.request.user.gennoteseditor.get_access_token())})
+
+    def create_genevieve_effect_relation(self, genevieve_effect_data):
+        genevieve_effect_data.update({'type': 'genevieve_effect'})
+        out = requests.post(
+            '{}/api/relation/'.format(settings.GENNOTES_SERVER),
+            data=json.dumps({
+                'variant': self.gennotes_var_data['url'],
+                'tags': genevieve_effect_data}),
+            headers={'Content-type': 'application/json',
+                     'Authorization': 'Bearer {}'.format(
+                         self.request.user.gennoteseditor.get_access_token())})
+        print out
+        print out.status_code
+        print out.json()
+
+    def update_genevieve_effect_relation(self, genevieve_effect_data):
+        pass
 
     def _get_genevieve_relations(self):
         self.genevieve_other_relations = []
@@ -265,19 +331,17 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
                 if relation['tags']['type'] == 'genevieve-notes':
                     if self.relid != '0' and relation['url'].endswith(
                             '/api/relation/{}/'.format(self.relid)):
-                        self.genevieve_genevieve_relation = relation
+                        self.genevieve_relation = relation
                     else:
                         self.genevieve_other_relations.append(relation)
 
     def _get_gennotes_variant(self):
-        b37_lookup = 'b37-{}-{}-{}-{}'.format(
-            self.object.chromosome, self.object.pos,
-            self.object.ref_allele, self.object.var_allele)
         gennotes_var_req = requests.get(
-            '{}/api/variant/{}'.format(
-                settings.GENNOTES_SERVER, b37_lookup))
+            '{}/api/variant/{}/'.format(
+                settings.GENNOTES_SERVER, self.object.b37_gennotes_id))
         if gennotes_var_req.status_code == 200:
             self.gennotes_var_data = gennotes_var_req.json()
+            return
         self.gennotes_var_data = None
 
     def _get_gennotes_data(self):
@@ -290,13 +354,43 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
         context = super(GenevieveNotesEditView,
                         self).get_context_data(*args, **kwargs)
         self._get_gennotes_data()
+        print self.gennotes_var_data
         kwargs.update({
+            'relid': self.relid,
+            'version': self.version,
             'gennotes_data': self.gennotes_var_data,
             'genevieve_other_relations': self.genevieve_other_relations,
             'genevieve_relation': self.genevieve_notes_data,
         })
         return context
 
+    def dispatch(self, request, *args, **kwargs):
+        self.relid = kwargs['relid']
+        self.version = kwargs['version']
+        return super(GenevieveNotesEditView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        genevieve_effect_data = {
+            'category': request.POST['genevieve_effect_category'],
+            'significance': request.POST['genevieve_effect_significance'],
+            'name': request.POST['genevieve_effect_name'],
+            'inheritance': request.POST['genevieve_effect_inheritance'],
+            'evidence': request.POST['genevieve_effect_evidence'],
+            'notes': request.POST['genevieve_effect_notes'],
+            'clinvar_rcv_records': request.POST.getlist(
+                'genevieve_effect_clinvar_rcv_records'),
+        }
+        self._get_gennotes_variant()
+        if not self.gennotes_var_data:
+            self.create_gennotes_variant()
+            self._get_gennotes_variant()
+            assert self.gennotes_var_data
+        if self.relid == 0 and not self.genevieve_relation:
+            self.create_genevieve_effect_relation(genevieve_effect_data)
+        else:
+            self.update_genevieve_effect_relation(genevieve_effect_data)
+        return super(GenevieveNotesEditView, self).get(request, *args, **kwargs)
     """
     def get_success_url(self):
         self.object = self.get_object()
