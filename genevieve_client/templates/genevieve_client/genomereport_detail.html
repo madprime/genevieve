@@ -56,7 +56,7 @@
                       Disease:
                     {% else %}Trait:{% endif %}
                   </th>
-                  <td> {{ item.name }}</td>
+                  <td> {{ item.tags.name }}</td>
                 </tr>
                 <tr>
                   <th>
@@ -75,11 +75,13 @@
                 {% if item.tags.clinvar_rcv_records %}
                 <tr>
                   <th>Clinvar records:</th>
-                  <td><ul>
-                    {% for rcv in item.tags.clinvar_rcv_records %}
-                    <li>{{ rcv.conditions.name }}</li>
-                    {% endfor %}
-                  </ul></td>
+                  <td>
+                  {% for rcv, rcv_data in item.tags.clinvar_rcv_records.items %}
+                    {{ rcv_data.clinical_significance }}:
+                    <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv_data.accession }}/">
+                      {{ rcv_data.conditions.name }}</a></br>
+                  {% endfor %}
+                  </td>
                 </tr>
                 {% endif %}
                 <tr>
@@ -90,7 +92,7 @@
                 </tr>
               </tbody>
             </table>
-            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id item.current_version %}">
+            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}">
               Edit these notes</a>
           </div>
         </div>
@@ -108,7 +110,7 @@
         </ul>
       {% endif %}
       <p>
-        <a href="{% url 'notes_edit' row_data.variant.id 0 0 %}">Add notes for a new effect</a>
+        <a href="{% url 'notes_edit' row_data.variant.id 0 %}">Add notes for a new effect</a>
       </p>
     </td>
   </tr>

@@ -59,33 +59,33 @@
 </div>
 <hr>
 
-<form action="{% url 'notes_edit' variant.id relid version %}" method="post"
+<form action="{% url 'notes_edit' variant.id relid %}" method="post"
   class="form-inline">
   {% csrf_token %}
   {% if genevieve_relation %}
-    <input type="hidden" name="relation_id" value="">
-    <input type="hidden" name="relation_version" value="">
+    <input type="hidden" name="relation_version" value="{{ genevieve_relation.current_version }}">
   {% endif %}
   <div class="form-group" style="margin-bottom:15px;">
     This variant is reported to affect a
       <select class="form-control" name="genevieve_effect_category">
-        <option value="disease">disease</option>
-        <option value="trait">trait</option>
-        <option value="other">other</option>
+        <option {% if effect_data.category == 'disease' %}selected {% endif %} value="disease">disease</option>
+        <option  {% if effect_data.category == 'trait' %}selected {% endif %} value="trait">trait</option>
+        <option  {% if effect_data.category == 'other' %}selected {% endif %} value="other">other</option>
       </select>.
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     The variant is reported to
     <select class="form-control" name="genevieve_effect_significance">
-      <option value="causal">cause</option>
-      <option value="risk_factor">increase risk for</option>
-      <option value="protective">prevent or reduce risk for</option>
+      <option {% if effect_data.significance == 'causal' %}selected {% endif %} value="causal">cause</option>
+      <option {% if effect_data.significance == 'risk_factor' %}selected {% endif %}value="risk_factor">increase risk for</option>
+      <option {% if effect_data.significance == 'protective' %}selected {% endif %}value="protective">prevent or reduce risk for</option>
     </select>
     this disease or trait.
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     Disease or trait effect:
     <input type="text" class="form-control" name="genevieve_effect_name"
+      {% if effect_data.name %}value="{{ effect_data.name }}" {% endif %}
       placeholder="Name or brief description" style="min-width:50%;">
     <br>
     <span class="text-muted">e.g. "Sickle cell disease" or "Breast and ovarian
@@ -94,18 +94,18 @@
   <div class="form-group" style="margin-bottom:15px;">
     Reported inheritance:
     <select class="form-control" name="genevieve_effect_inheritance">
-      <option value="dominant">Dominant</option>
-      <option value="recessive">Recessive</option>
-      <option value="additive">Additive</option>
-      <option value="other_or_unknown" selected>Other or unknown</option>
+      <option {% if effect_data.inheritance == 'dominant' %}selected {% endif %} value="dominant">Dominant</option>
+      <option {% if effect_data.inheritance == 'recessive' %}selected {% endif %} value="recessive">Recessive</option>
+      <option {% if effect_data.inheritance == 'additive' %}selected {% endif %} value="additive">Additive</option>
+      <option {% if effect_data.inheritance == 'other_or_unknown' or not effect_data %}selected {% endif %} value="other_or_unknown">Other or unknown</option>
     </select>
   </div><br>
   <div class="form-group" style="margin-bottom:15px;">
     This effect should be considered:
     <select class="form-control" name="genevieve_effect_evidence">
-      <option value="well-established">well-established</option>
-      <option value="reported" selected>reported</option>
-      <option value="contradicted">contradicted</option>
+      <option {% if effect_data.evidence == 'well-established' %}selected {% endif %} value="well-established">well-established</option>
+      <option {% if effect_data.evidence == 'reported' or not effect_data %}selected {% endif %} value="reported">reported</option>
+      <option {% if effect_data.evidence == 'contradicted' %}selected {% endif %} value="contradicted">contradicted</option>
     </select>
   </div>
   <br>
@@ -115,6 +115,7 @@
     {% for rcv in variant.myvariant_clinvar.rcv %}
       <label style="padding-left:20px;">
         <input type="checkbox" name="genevieve_effect_clinvar_rcv_records"
+            {% if rcv.accession in effect_data.clinvar_rcv_records %}checked {% endif %}
             value="{{ rcv.accession }}">
           <a href="https://www.ncbi.nlm.nih.gov/clinvar/{{ rcv.accession }}">
             {{ rcv.clinical_significance }}: {{ rcv.conditions.name }}</a>
@@ -124,7 +125,7 @@
   {% endif %}
   <span class="text-muted"><b>Notes about this reported effect</b></span>
   <textarea class="form-control" rows="6" name="genevieve_effect_notes"
-    style="min-width:100%;margin-bottom:15px;"></textarea>
+    style="min-width:100%;margin-bottom:15px;">{% if effect_data.notes %}{{ effect_data.notes }}{% endif %}</textarea>
   <p>
     <b>By submitting edits, you agree to waive copyright and release submitted
     material as public domain using the Creative Commons CC0 1.0 Public Domain

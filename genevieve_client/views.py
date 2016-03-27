@@ -64,7 +64,6 @@ class AuthorizeGennotesView(RedirectView):
 
     @staticmethod
     def _exchange_code(code):
-        print GennotesEditor.GENNOTES_TOKEN_URL
         token_response = requests.post(
             GennotesEditor.GENNOTES_TOKEN_URL,
             data={
@@ -88,7 +87,6 @@ class AuthorizeGennotesView(RedirectView):
     def get(self, request, *args, **kwargs):
         if 'code' in request.GET:
             token_data = self._exchange_code(request.GET['code'])
-            print token_data
             user_data = self._get_user_data(token_data['access_token'])
 
             try:
@@ -219,15 +217,14 @@ class GenomeReportDetailView(DetailView):
                                  'page_size': 10000}
                          ).json()['results']
             }
-        print genome_variants
-        print json.dumps(gennotes_data, indent=2)
         variants_by_freq = sorted(
             genome_variants.keys(),
             key=lambda k: (
                 genome_variants[k].variant.allele_frequency if
                 genome_variants[k].variant.allele_frequency else
                 1 if (genome_variants[k].variant.ref_allele ==
-                      genome_variants[k].variant.var_allele) else 0))
+                      genome_variants[k].variant.var_allele or
+                      genome_variants[k].variant.chromosome == 25) else 0))
         report_rows = []
         for var in variants_by_freq:
             genome_variant = genome_variants[var]
@@ -292,7 +289,6 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
 
     def create_gennotes_variant(self):
         self.object = self.get_object()
-        print self.object.b37_gennotes_id
         requests.post(
             '{}/api/variant/'.format(settings.GENNOTES_SERVER),
             data=json.dumps({
@@ -316,19 +312,32 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
             headers={'Content-type': 'application/json',
                      'Authorization': 'Bearer {}'.format(
                          self.request.user.gennoteseditor.get_access_token())})
-        print out
-        print out.status_code
-        print out.json()
+        if out.status_code == 200:
+            messages.success(self.request, "Effect notes created!")
+        else:
+            messages.error(self.request, "Effect notes creation failed.")
 
     def update_genevieve_effect_relation(self, genevieve_effect_data):
-        pass
+        genevieve_effect_data.update({'type': 'genevieve_effect'})
+        out = requests.patch(
+            '{}/api/relation/{}/'.format(settings.GENNOTES_SERVER, self.relid),
+            data=json.dumps({
+                'edited_version': int(self.request.POST['relation_version']),
+                'tags': genevieve_effect_data}),
+            headers={'Content-type': 'application/json',
+                     'Authorization': 'Bearer {}'.format(
+                         self.request.user.gennoteseditor.get_access_token())})
+        if out.status_code == 200:
+            messages.success(self.request, "Effect notes updated!")
+        else:
+            messages.error(self.request, "Effect notes update failed.")
 
     def _get_genevieve_relations(self):
         self.genevieve_other_relations = []
-        self.genevieve_notes_data = {}
+        self.genevieve_relation = None
         if self.gennotes_var_data:
             for relation in self.gennotes_var_data['relation_set']:
-                if relation['tags']['type'] == 'genevieve-notes':
+                if relation['tags']['type'] == 'genevieve_effect':
                     if self.relid != '0' and relation['url'].endswith(
                             '/api/relation/{}/'.format(self.relid)):
                         self.genevieve_relation = relation
@@ -354,19 +363,20 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
         context = super(GenevieveNotesEditView,
                         self).get_context_data(*args, **kwargs)
         self._get_gennotes_data()
-        print self.gennotes_var_data
-        kwargs.update({
+        context.update({
             'relid': self.relid,
-            'version': self.version,
             'gennotes_data': self.gennotes_var_data,
             'genevieve_other_relations': self.genevieve_other_relations,
-            'genevieve_relation': self.genevieve_notes_data,
+            'genevieve_relation': self.genevieve_relation,
+            'effect_data': ((self.genevieve_relation['tags'] if
+                            self.genevieve_relation else None) if not
+                            self.effect_data else self.effect_data),
         })
         return context
 
     def dispatch(self, request, *args, **kwargs):
         self.relid = kwargs['relid']
-        self.version = kwargs['version']
+        self.effect_data = None
         return super(GenevieveNotesEditView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -381,77 +391,14 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
             'clinvar_rcv_records': request.POST.getlist(
                 'genevieve_effect_clinvar_rcv_records'),
         }
-        self._get_gennotes_variant()
+        self.effect_data = genevieve_effect_data
+        self._get_gennotes_data()
         if not self.gennotes_var_data:
             self.create_gennotes_variant()
             self._get_gennotes_variant()
             assert self.gennotes_var_data
-        if self.relid == 0 and not self.genevieve_relation:
+        if self.relid == '0' and not self.genevieve_relation:
             self.create_genevieve_effect_relation(genevieve_effect_data)
         else:
             self.update_genevieve_effect_relation(genevieve_effect_data)
         return super(GenevieveNotesEditView, self).get(request, *args, **kwargs)
-    """
-    def get_success_url(self):
-        self.object = self.get_object()
-        return reverse('variant_edit', args=[self.object.id])
-
-    def get_initial(self):
-        initial = super(GenevieveVariantEditView, self).get_initial()
-        try:
-            relation_tags = self.gennotes_data['relation_data']['tags']
-        except AttributeError:
-            self._get_gennotes_data()
-            relation_tags = self.gennotes_data['relation_data']['tags']
-        if 'genevieve:inheritance' in relation_tags:
-            initial['genevieve_inheritance'] = relation_tags[
-                'genevieve:inheritance']
-        if 'genevieve:evidence' in relation_tags:
-            initial['genevieve_evidence'] = relation_tags['genevieve:evidence']
-        if 'genevieve:notes' in relation_tags:
-            initial['genevieve_notes'] = relation_tags['genevieve:notes']
-        if 'genevieve:allele-frequency' in relation_tags:
-            initial['genevieve_allele_freq'] = relation_tags[
-                'genevieve:allele-frequency']
-        if 'genevieve:allele-frequency-source' in relation_tags:
-            initial['genevieve_allele_freq_source'] = relation_tags[
-                'genevieve:allele-frequency-source']
-        return initial
-
-    def form_valid(self, form):
-        relation_id = self.request.POST['relation_id']
-        relation_version = self.request.POST['relation_version']
-        access_token = self.request.user.gennoteseditor.get_access_token()
-        relation_uri = ('{}/api/relation/{}/'.format(settings.GENNOTES_SERVER,
-                                                     relation_id))
-
-        # Assemble updated Genevieve tag data.
-        tags = {}
-        tags['genevieve:inheritance'] = form.cleaned_data[
-            'genevieve_inheritance']
-        tags['genevieve:evidence'] = form.cleaned_data['genevieve_evidence']
-        tags['genevieve:notes'] = form.cleaned_data['genevieve_notes']
-        # Set frequency if we got it
-        if form.cleaned_data['genevieve_allele_freq']:
-            tags['genevieve:allele-frequency'] = float(form.cleaned_data[
-                'genevieve_allele_freq'])
-            if form.cleaned_data['genevieve_allele_freq_source']:
-                tags['genevieve:allele-frequency-source'] = form.cleaned_data[
-                    'genevieve_allele_freq_source']
-
-        # Send edit to the GenNotes API.
-        print tags
-        data = json.dumps({
-            'tags': tags,
-            'edited-version': int(relation_version)
-        })
-        print data
-        response_patch = requests.patch(
-            relation_uri,
-            data=data,
-            headers={'Content-type': 'application/json',
-                     'Authorization': 'Bearer {}'.format(access_token)})
-        print response_patch.status_code
-        print response_patch.text
-        return super(GenevieveVariantEditView, self).form_valid(form)
-    """
