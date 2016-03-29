@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
+from django.utils import timezone as django_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import (DetailView, FormView, ListView,
@@ -140,16 +141,23 @@ class AuthorizeOpenHumansView(RedirectView):
                 openhumansuser = OpenHumansUser(
                     user=user,
                     connected_id=user_data['project_member_id'],
+                    openhumans_username=user_data['username'],
                     access_token=token_data['access_token'],
                     refresh_token=token_data['refresh_token'],
                     token_expiration=(
-                        datetime.datetime.now() +
+                        django_timezone.now() +
                         datetime.timedelta(seconds=token_data['expires_in'])))
                 openhumansuser.save()
                 user.backend = (
                     'genevieve_client.auth_backends.AuthenticationBackend')
                 login(request, user)
                 messages.success(request, 'Open Humans account connected!')
+                try:
+                    gvuser = GenevieveUser.objects.get(user=user)
+                    if gvuser.agreed_to_terms:
+                        openhumansuser.perform_genome_reports()
+                except GenevieveUser.DoesNotExist:
+                    pass
         else:
             messages.error(request, 'Failed to authorize Open Humans!')
         return super(AuthorizeOpenHumansView, self).get(
@@ -206,12 +214,16 @@ class AuthorizeGennotesView(RedirectView):
                     request, ('Logged in as GenNotes user "{}".'.format(
                               user_data['username'])))
             except GennotesEditor.DoesNotExist:
-                new_username = make_unique_username(base=user_data['username'])
-                new_user = User(username=new_username,
-                                email=user_data['email'])
-                new_user.save()
+                user = request.user
+                new_user = None
+                if not user.is_authenticated():
+                    new_username = make_unique_username(base=user_data['username'])
+                    new_user = User(username=new_username,
+                                    email=user_data['email'])
+                    new_user.save()
+                    user = new_user
                 gennotes_editor = GennotesEditor(
-                    user=new_user,
+                    user=user,
                     connected_id=user_data['id'],
                     gennotes_username=user_data['username'],
                     gennotes_email=user_data['email'],
@@ -220,14 +232,18 @@ class AuthorizeGennotesView(RedirectView):
                     token_expiration=(
                         datetime.datetime.now() +
                         datetime.timedelta(seconds=token_data['expires_in'])))
-                messages.success(
-                    request,
-                    ('Account created for GenNotes user "{}" and authorized '
-                     'for edit submissions.'.format(user_data['username'])))
                 gennotes_editor.save()
-                new_user.backend = (
+                if new_user:
+                    success_msg = (
+                        'Account created for GenNotes user "{}" and authorized '
+                        'for edit submissions.'.format(user_data['username']))
+                else:
+                    success_msg = ('Account connected for GenNotes user '
+                                   '"{}".'.format(user_data['username']))
+                messages.success(request, success_msg)
+                user.backend = (
                     'genevieve_client.auth_backends.AuthenticationBackend')
-                login(request, new_user)
+                login(request, user)
         else:
             messages.error(request, 'Failed to authorize GenNotes!')
         return super(AuthorizeGennotesView, self).get(
@@ -356,6 +372,8 @@ class GenomeReportDetailView(TemplateView):
         # Get local and GenNotes data, organized according to b37_gennotes_id
         genome_variants = {gv.variant.b37_gennotes_id: gv for gv in
                            self.genomereport.genomevariant_set.all()}
+        if not genome_variants:
+            return context
         gennotes_data = {
             res['b37_id']: res for res in
             requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
@@ -408,7 +426,8 @@ class GenomeReportDetailView(TemplateView):
             row_data['gennotes_data'] = gennotes_items
             report_rows.append(row_data)
         context.update({
-            'report_rows': report_rows
+            'report_rows': report_rows,
+            'gennotes_auth_url': GennotesEditor.AUTH_URL,
             })
         return context
 
@@ -435,7 +454,7 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     def create_gennotes_variant(self):
         self.object = self.get_object()
         requests.post(
-            '{}/api/variant/'.format(settings.GENNOTES_SERVER),
+            '{}/api/variant/'.format(settings.GENNOTES_URL),
             data=json.dumps({
                 'tags': {
                     'chrom_b37': str(self.object.chromosome),
@@ -450,7 +469,7 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     def create_genevieve_effect_relation(self, genevieve_effect_data):
         genevieve_effect_data.update({'type': 'genevieve_effect'})
         out = requests.post(
-            '{}/api/relation/'.format(settings.GENNOTES_SERVER),
+            '{}/api/relation/'.format(settings.GENNOTES_URL),
             data=json.dumps({
                 'variant': self.gennotes_var_data['url'],
                 'tags': genevieve_effect_data}),
@@ -465,7 +484,7 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     def update_genevieve_effect_relation(self, genevieve_effect_data):
         genevieve_effect_data.update({'type': 'genevieve_effect'})
         out = requests.patch(
-            '{}/api/relation/{}/'.format(settings.GENNOTES_SERVER, self.relid),
+            '{}/api/relation/{}/'.format(settings.GENNOTES_URL, self.relid),
             data=json.dumps({
                 'edited_version': int(self.request.POST['relation_version']),
                 'tags': genevieve_effect_data}),
@@ -492,7 +511,7 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     def _get_gennotes_variant(self):
         gennotes_var_req = requests.get(
             '{}/api/variant/{}/'.format(
-                settings.GENNOTES_SERVER, self.object.b37_gennotes_id))
+                settings.GENNOTES_URL, self.object.b37_gennotes_id))
         if gennotes_var_req.status_code == 200:
             self.gennotes_var_data = gennotes_var_req.json()
             return
