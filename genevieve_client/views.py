@@ -10,12 +10,12 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
-from django.views.generic.detail import (SingleObjectMixin,
-                                         SingleObjectTemplateResponseMixin)
+from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import (DetailView, FormView, ListView,
-                                  RedirectView, TemplateView, UpdateView)
+                                  RedirectView, TemplateView)
 
-from .models import GennotesEditor, GenomeReport, OpenHumansUser, Variant
+from .models import (GennotesEditor, GenomeReport, GenevieveUser,
+                     OpenHumansUser, Variant)
 from .forms import GenomeUploadForm
 from .tasks import produce_genome_report
 
@@ -51,11 +51,34 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         kwargs.update({
             'genevieve_admin_email': settings.GENEVIEVE_ADMIN_EMAIL,
-            'gennotes_auth_url': GennotesEditor.GENNOTES_AUTH_URL,
-            'gennotes_server': GennotesEditor.GENNOTES_SERVER,
-            'gennotes_signup_url': GennotesEditor.GENNOTES_SIGNUP_URL,
+            'gennotes_auth_url': GennotesEditor.AUTH_URL,
+            'gennotes_url': GennotesEditor.BASE_URL,
+            'gennotes_signup_url': GennotesEditor.SIGNUP_URL,
+            'openhumans_auth_url': OpenHumansUser.AUTH_URL,
+            'genomereport_list': (
+                GenomeReport.objects.filter(user=self.request.user) if
+                self.request.user.is_authenticated() else []),
         })
         return super(HomeView, self).get_context_data(**kwargs)
+
+    def post(self, request, **kwargs):
+        terms_categories = ['education_and_research', 'contains_errors',
+                            'incomplete', 'public', 'terms']
+        if all([item in request.POST and request.POST[item] == 'on' for
+                item in terms_categories]):
+            gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
+            gvuser.agreed_to_terms = True
+            gvuser.save()
+            try:
+                ohuser = OpenHumansUser.objects.get(user=request.user)
+                ohuser.perform_genome_reports()
+            except OpenHumansUser.DoesNotExist:
+                pass
+        else:
+            messages.error(
+                request, 'Please agree to our terms of use and indicate you '
+                'understand important aspects of Genevieve.')
+        return super(HomeView, self).get(request, **kwargs)
 
 
 class AuthorizeOpenHumansView(RedirectView):
@@ -64,13 +87,14 @@ class AuthorizeOpenHumansView(RedirectView):
 
     @staticmethod
     def _exchange_code(code):
+        data = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': OpenHumansUser.REDIRECT_URI
+        }
         token_response = requests.post(
-            GennotesEditor.GENNOTES_TOKEN_URL,
-            data={
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': OpenHumansUser.REDIRECT_URI
-            },
+            OpenHumansUser.TOKEN_URL,
+            data=data,
             auth=requests.auth.HTTPBasicAuth(
                 OpenHumansUser.CLIENT_ID, OpenHumansUser.CLIENT_SECRET
             )
@@ -104,12 +128,16 @@ class AuthorizeOpenHumansView(RedirectView):
                 login(request, user)
                 messages.success(request, ('Logged in via Open Humans.'))
             except OpenHumansUser.DoesNotExist:
-                new_username = make_unique_username(
-                    base='openhumans_{}'.format(user_data['project_member_id']))
-                new_user = User(username=new_username)
-                new_user.save()
+                if request.user.is_authenticated():
+                    user = request.user
+                else:
+                    new_username = make_unique_username(
+                        base='openhumans_{}'.format(user_data['project_member_id']))
+                    new_user = User(username=new_username)
+                    new_user.save()
+                    user = new_user
                 openhumansuser = OpenHumansUser(
-                    user=new_user,
+                    user=user,
                     connected_id=user_data['project_member_id'],
                     access_token=token_data['access_token'],
                     refresh_token=token_data['refresh_token'],
@@ -117,13 +145,13 @@ class AuthorizeOpenHumansView(RedirectView):
                         datetime.datetime.now() +
                         datetime.timedelta(seconds=token_data['expires_in'])))
                 openhumansuser.save()
-                new_user.backend = (
+                user.backend = (
                     'genevieve_client.auth_backends.AuthenticationBackend')
-                login(request, new_user)
-                messages.success(request, 'Logged in via Open Humans.')
+                login(request, user)
+                messages.success(request, 'Open Humans account connected!')
         else:
             messages.error(request, 'Failed to authorize Open Humans!')
-        return super(AuthorizeGennotesView, self).get(
+        return super(AuthorizeOpenHumansView, self).get(
             request, *args, **kwargs)
 
 
@@ -134,7 +162,7 @@ class AuthorizeGennotesView(RedirectView):
     @staticmethod
     def _exchange_code(code):
         token_response = requests.post(
-            GennotesEditor.GENNOTES_TOKEN_URL,
+            GennotesEditor.TOKEN_URL,
             data={
                 'grant_type': 'authorization_code',
                 'code': code,
@@ -149,7 +177,7 @@ class AuthorizeGennotesView(RedirectView):
     @staticmethod
     def _get_user_data(access_token):
         user_data_response = requests.get(
-            GennotesEditor.GENNOTES_USER_URL,
+            GennotesEditor.USER_URL,
             headers={'Authorization': 'Bearer {}'.format(access_token)})
         return user_data_response.json()
 
@@ -160,7 +188,7 @@ class AuthorizeGennotesView(RedirectView):
 
             try:
                 gennotes_editor = GennotesEditor.objects.get(
-                    gennotes_id=user_data['id'])
+                    connected_id=user_data['id'])
                 gennotes_editor.access_token = token_data['access_token']
                 gennotes_editor.refresh_token = token_data['refresh_token']
                 gennotes_editor.token_expiration = (
@@ -183,7 +211,7 @@ class AuthorizeGennotesView(RedirectView):
                 new_user.save()
                 gennotes_editor = GennotesEditor(
                     user=new_user,
-                    gennotes_id=user_data['id'],
+                    connected_id=user_data['id'],
                     gennotes_username=user_data['username'],
                     gennotes_email=user_data['email'],
                     access_token=token_data['access_token'],
@@ -216,7 +244,7 @@ class GenomeImportView(FormView):
 
     def form_valid(self, form):
         # Double-check that user has permission to upload genome.
-        if not self.request.user.gennoteseditor.genome_upload_enabled:
+        if not self.request.user.genevieveuser.genome_upload_enabled:
             print "Not authorized for genome upload??"
             messages.error(self.request,
                            'Account not authorized to upload genomes.')
@@ -280,7 +308,7 @@ class GenomeReportDetailView(DetailView):
                            self.object.genomevariant_set.all()}
         gennotes_data = {
             res['b37_id']: res for res in
-            requests.get('{}/api/variant/'.format(settings.GENNOTES_SERVER),
+            requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
                          params={'variant_list': json.dumps(
                                  genome_variants.keys()),
                                  'page_size': 10000}
@@ -341,8 +369,6 @@ class GenomeReportReprocessView(DetailView):
 
     def post(self, request, *args, **kwargs):
         genome_report = self.get_object()
-        for genomevar in genome_report.genomevariant_set.all():
-            genomevar.delete()
         produce_genome_report.delay(
             genome_report=GenomeReport.objects.get(pk=genome_report.id))
         messages.success(request,

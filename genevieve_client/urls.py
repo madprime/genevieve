@@ -2,6 +2,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 from .views import (AuthorizeGennotesView,
+                    AuthorizeOpenHumansView,
                     HomeView,
                     GenomeImportView,
                     GenomeReportDetailView,
@@ -15,6 +16,9 @@ urlpatterns = [
     # url(r'^blog/', include('blog.urls')),
 
     url(r'^$', HomeView.as_view(), name='home'),
+
+    url(r'about/$', HomeView.as_view(template_name='genevieve_client/about.html'),
+        name='about'),
 
     url(r'genome_import/', GenomeImportView.as_view(), name='genome_import'),
 
@@ -32,6 +36,8 @@ urlpatterns = [
 
     url(r'authorize_gennotes/', AuthorizeGennotesView.as_view(),
         name='authorize_gennotes'),
+    url(r'authorize_openhumans/', AuthorizeOpenHumansView.as_view(),
+        name='authorize_openhumans'),
 
     url(r'^admin/', include(admin.site.urls)),
 

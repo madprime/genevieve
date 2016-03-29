@@ -57,7 +57,7 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="navbar-main-collapse">
           <ul class="nav navbar-nav">
-            <li><a href="{% url 'genome_report_list' %}">Genome reports</a></li>
+            <li><a href="{% url 'about' %}">About</a></li>
             <!-- Fill this with menu items as needed.
             <li><a href="#">Link</a></li>
             -->
@@ -66,8 +66,6 @@
           <ul class="nav navbar-nav navbar-right">
             {% if user.is_authenticated %}
             <li><a href="{% url 'account_logout' %}">Log out</a></li>
-            {% else %}
-            <li><a href="{% url 'account_login' %}">Log in</a></li>
             {% endif %}
           </ul>
         </div><!-- /.navbar-collapse -->

@@ -1,14 +1,18 @@
 from collections import OrderedDict
 import datetime
+import re
 import requests
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
+from pytz import timezone as pytz_timezone
 import myvariant
+from vcf2clinvar import clinvar_update
+
 
 CHROMOSOMES = OrderedDict([
     (1, '1'),
@@ -99,6 +103,7 @@ class GenomeReport(models.Model):
     report_name = models.CharField(max_length=80)
     genome_file_url = models.TextField()
     last_processed = models.DateTimeField(null=True)
+    report_type = models.CharField(max_length=80, blank=True)
     variants = models.ManyToManyField(Variant, through='GenomeVariant',
                                       through_fields=('genome', 'variant'))
 
@@ -125,8 +130,43 @@ class GenomeReport(models.Model):
                 variant.myvariant_dbsnp = var_data['dbsnp']
             except KeyError:
                 variant.myvariant_dbsnp = {}
-            variant.myvariant_last_update = timezone.now()
+            variant.myvariant_last_update = django_timezone.now()
             variant.save()
+
+    def new_clinvar_available(self):
+        cv_year, cv_month, cv_day = [int(x) for x in re.search(
+            r'_(20[0-9][0-9])([01][0-9])([0-3][0-9])\.vcf',
+            clinvar_update.latest_vcf_filename('b37')).groups()]
+        cv_latest = datetime.datetime(
+            cv_year, cv_month, cv_day + 1, 0, 0, 0,
+            tzinfo=pytz_timezone('US/Eastern'))
+        if self.last_processed and self.last_processed > cv_latest:
+            return False
+        return True
+
+    def refresh_oh_report_file_url(self, user_data=None):
+        if self.report_type.startswith('openhumans-'):
+            source = re.match(
+                r'openhumans-(.*)$', self.report_type).groups()[0]
+            new_file_url = self.user.openhumansuser.file_url_for_source(
+                source, user_data=user_data)
+            if new_file_url:
+                self.file_url = new_file_url
+                self.save()
+
+    def refresh(self, oh_user_data=None):
+        if self.new_clinvar_available():
+            # Refresh file URL for Open Humans data.
+            if self.report_type.startswith('openhumans-'):
+                self.refresh_oh_report_file_url(user_data=oh_user_data)
+            # Refresh object to ensure up-to-date file URL.
+            report = GenomeReport.objects.get(pk=self.pk)
+
+            # Avoid circular import.
+            from .tasks import produce_genome_report
+            produce_genome_report.delay(report)
+        else:
+            self.refresh_myvariant_data()
 
 
 class GenomeVariant(models.Model):
@@ -136,6 +176,12 @@ class GenomeVariant(models.Model):
                                 choices=(('Het', 'Heterozygous'),
                                          ('Hom', 'Homozygous'),
                                          ('Hem', 'Hemizygous')))
+
+
+class GenevieveUser(models.Model):
+    user = models.OneToOneField(User)
+    genome_upload_enabled = models.BooleanField(default=False)
+    agreed_to_terms = models.BooleanField(default=False)
 
 
 class ConnectedUser(models.Model):
@@ -159,7 +205,7 @@ class ConnectedUser(models.Model):
         token_data = response_refresh.json()
         self.access_token = token_data['access_token']
         self.refresh_token = token_data['refresh_token']
-        self.token_expiration = (timezone.now() +
+        self.token_expiration = (django_timezone.now() +
                                  datetime.timedelta(
                                      seconds=token_data['expires_in']))
         self.save()
@@ -169,8 +215,8 @@ class ConnectedUser(models.Model):
         True if token expired (or expires in offset seconds), otherwise False.
         """
         offset_expiration = (
-            self.token_expiration - timezone.timedelta(seconds=offset))
-        if timezone.now() >= offset_expiration:
+            self.token_expiration - django_timezone.timedelta(seconds=offset))
+        if django_timezone.now() >= offset_expiration:
             return True
         return False
 
@@ -190,8 +236,6 @@ class OpenHumansUser(ConnectedUser):
     The project_member_id is stored in the 'connected_id' model field.
     """
     openhumans_username = models.CharField(max_length=30, blank=True)
-    genome_upload_enabled = models.BooleanField(default=False)
-    genome_storage_enabled = models.BooleanField(default=False)
 
     CLIENT_ID = settings.OPENHUMANS_CLIENT_ID
     CLIENT_SECRET = settings.OPENHUMANS_CLIENT_SECRET
@@ -203,6 +247,7 @@ class OpenHumansUser(ConnectedUser):
     TOKEN_URL = BASE_URL + '/oauth2/token/'
     REDIRECT_URI = settings.OPENHUMANS_REDIRECT_URI
     OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
+    USER_URL = BASE_URL + '/api/direct-sharing/project/exchange-member/'
 
     def __unicode__(self):
         return self.openhumans_username
@@ -210,6 +255,73 @@ class OpenHumansUser(ConnectedUser):
     @property
     def project_member_id(self):
         return self.connected_id
+
+    def get_user_data(self):
+        access_token = self.get_access_token()
+        user_data_response = requests.get(
+            self.USER_URL,
+            headers={'Authorization': 'Bearer {}'.format(access_token)})
+        return user_data_response.json()
+
+    def get_current_ohreports_by_source(self):
+        ohreports_by_source = {}
+        reports = GenomeReport.objects.filter(user=self.user)
+        for report in reports:
+            if report.report_type.startswith('openhumans-'):
+                source = re.match(
+                    r'openhumans-(.*)$', report.report_type).groups()[0]
+            ohreports_by_source[source] = report
+        return ohreports_by_source
+
+    def file_url_for_source(self, source, user_data=None):
+        if not user_data:
+            user_data = self.get_user_data()
+        candidate_datafiles = []
+        for datafile in user_data['data']:
+            if (datafile['source'] == source and
+                    'tags' in datafile['metadata'] and
+                    'vcf' in datafile['metadata']['tags']):
+                candidate_datafiles.append(datafile)
+        if len(candidate_datafiles) >= 1:
+            return candidate_datafiles[0]['download_url']
+        return None
+
+    def perform_genome_reports(self):
+        """
+        Refresh genome reports or produce new ones. Only one per source.
+        """
+        user_data = self.get_user_data()
+        sources = ['twenty_three_and_me', 'ancestry_dna', 'pgp']
+        source_names = {'twenty_three_and_me': '23andMe',
+                        'ancestry_dna': 'AncestryDNA',
+                        'pgp': 'Harvard PGP'}
+        current_reports = self.get_current_ohreports_by_source()
+
+        # Refresh current reports
+        for source in current_reports:
+            if source in sources:
+                sources.remove(source)
+            current_reports[source].refresh(oh_user_data=user_data)
+
+        # Look for new onse to create, and start them.
+        for datafile in user_data['data']:
+            if (datafile['source'] in sources and
+                    'tags' in datafile['metadata'] and
+                    'vcf' in datafile['metadata']['tags']):
+                new_report = GenomeReport(
+                    genome_file_url=datafile['download_url'],
+                    user=self.user,
+                    report_name="Report for {}'s {} data".format(
+                        user_data['username'],
+                        source_names[datafile['source']]),
+                    report_type='openhumans-{}'.format(datafile['source']),
+                )
+                new_report.save()
+
+                # Avoid circular import.
+                from .tasks import produce_genome_report
+                produce_genome_report.delay(new_report)
+                sources.remove(datafile['source'])
 
 
 class GennotesEditor(ConnectedUser):
@@ -223,14 +335,14 @@ class GennotesEditor(ConnectedUser):
 
     CLIENT_ID = settings.GENNOTES_CLIENT_ID
     CLIENT_SECRET = settings.GENNOTES_CLIENT_SECRET
-    BASE_URL = settings.GENNOTES_SERVER
+    BASE_URL = settings.GENNOTES_URL
     AUTH_URL = (
         BASE_URL + '/oauth2-app/authorize?client_id={}&'
         'response_type=code'.format(CLIENT_ID))
     SIGNUP_URL = BASE_URL + '/accounts/signup/'
     TOKEN_URL = BASE_URL + '/oauth2-app/token/'
     REDIRECT_URI = settings.GENNOTES_REDIRECT_URI
-    GENNOTES_USER_URL = BASE_URL + '/api/me/'
+    USER_URL = BASE_URL + '/api/me/'
 
     def __unicode__(self):
         return self.gennotes_username

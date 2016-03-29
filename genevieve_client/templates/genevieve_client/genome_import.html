@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{% if request.user.gennoteseditor.genome_upload_enabled %}
+{% if request.user.genevieveuser.genome_upload_enabled %}
 <p>Import genome:</p>
 
 <form role="form" action="{% url 'genome_import' %}" method="post"

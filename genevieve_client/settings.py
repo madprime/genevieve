@@ -173,10 +173,15 @@ DEBUG_TOOLBAR_PANELS = [
 # GenNotes client ID and secret.
 GENNOTES_CLIENT_ID = os.getenv('GENNOTES_CLIENT_ID')
 GENNOTES_CLIENT_SECRET = os.getenv('GENNOTES_CLIENT_SECRET')
-GENNOTES_REDIRECT_URI = os.getenv('GENNOTES_REDIRECT_URI',
-                                  'http://localhost:8000/authorize_gennotes/')
-GENNOTES_SERVER = os.getenv('GENNOTES_SERVER',
-                            'https://gennotes.herokuapp.com')
+GENNOTES_REDIRECT_URI = os.getenv('GENNOTES_REDIRECT_URI')
+GENNOTES_URL = os.getenv('GENNOTES_URL',
+                         'https://gennotes.herokuapp.com')
+
+# GenNotes client ID and secret.
+OPENHUMANS_CLIENT_ID = os.getenv('OPENHUMANS_CLIENT_ID')
+OPENHUMANS_CLIENT_SECRET = os.getenv('OPENHUMANS_CLIENT_SECRET')
+OPENHUMANS_REDIRECT_URI = os.getenv('OPENHUMANS_REDIRECT_URI')
+OPENHUMANS_URL = os.getenv('OPENHUMANS_URL')
 
 # Genevieve settings
 GENEVIEVE_ADMIN_EMAIL = os.getenv('GENEVIEVE_ADMIN_EMAIL', '')

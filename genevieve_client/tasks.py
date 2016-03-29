@@ -3,16 +3,15 @@
 # and the celery package.
 from __future__ import absolute_import
 import bz2
-from datetime import datetime
 from ftplib import FTP
 import gzip
 import os
 import re
-import tempfile
 import urlparse
 
 from celery import shared_task
 from django.conf import settings
+from django.utils import timezone as django_timezone
 import requests
 import vcf2clinvar
 from vcf2clinvar import clinvar_update
@@ -98,10 +97,17 @@ def produce_genome_report(genome_report, reprocess=False):
         genome_in = gzip.open(genome_filepath, 'rb')
     else:
         genome_in = open(genome_filepath)
+
     clinvar_file = setup_clinvar_file()
     clinvar_matches = vcf2clinvar.match_to_clinvar(genome_file=genome_in,
                                                    clin_file=clinvar_file)
     chrom_map = {'chr' + v: k for k, v in CHROMOSOMES.items()}
+
+    # Delete old GenomeVariants only after we've successfully started a new
+    # set of matches.
+    for genomevar in genome_report.genomevariant_set.all():
+        genomevar.delete()
+
     for genome_vcf_line, allele, zygosity in clinvar_matches:
         chrom = chrom_map[
             REV_CHROM_INDEX[CHROM_INDEX[genome_vcf_line.chrom]]]
@@ -135,6 +141,6 @@ def produce_genome_report(genome_report, reprocess=False):
             variant=variant,
             zygosity=zygosity)
 
-    genome_report.last_processed = datetime.now()
+    genome_report.last_processed = django_timezone.now()
     genome_report.save()
     genome_report.refresh_myvariant_data()

@@ -4,10 +4,90 @@
 {% block content %}
 <h1>Genevieve</h1>
 
-{% if user.is_authenticated %}
-  <p>
-    Welcome!
-  </p>
+{% if user.is_authenticated and not user.genevieveuser.agreed_to_terms %}
+<h2>Welcome!</h2>
+<p>
+  Before we share any reports with you, we need to make sure you understand
+  what Genevieve is &ndash; and isn't.
+</p>
+
+{% include 'genevieve_client/partial_about_intro.html' %}
+
+{% include 'genevieve_client/partial_education_and_research.html' %}
+
+{% include 'genevieve_client/partial_contains_errors.html' %}
+
+{% include 'genevieve_client/partial_public_reports.html' %}
+
+<hr>
+<p>
+  <form action="{% url 'home' %}" method="post">
+    {% csrf_token %}
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="education_and_research">
+        I understand Genevieve is intended for educational and research use,
+        and not for clinical use.
+      </label>
+    </div>
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="contains_errors">
+        I understand many reported variant effects in Genevieve will be
+        incorrect.
+      </label>
+    </div>
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="incomplete">
+        I understand Genevieve may fail to highlight information that I or
+        others consider important.
+      </label>
+    </div>
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="public">
+        I understand that Genevieve will publicly share my report if the
+        corresponding Open Humans data is public.
+      </label>
+    </div>
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="terms">
+        I understand Genevieve is governed by the same
+        <a href="http://www.openhumans.org/terms/">terms of use</a> as Open
+        Humans, and I agree to these terms.
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-bottom:15px;">
+      Continue</button>
+  </form>
+</p>
+{% endif %}
+
+{% if user.is_authenticated and user.genevieveuser.agreed_to_terms %}
+  <h2>Your genome reports</h2>
+
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Report name</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for report in genomereport_list %}
+    <tr>
+      <td><a href="{% url 'genome_report_detail' report.pk %}">
+        {{ report.report_name }}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  </table>
+<hr>
+{% endif %}
+
+{% if user.is_authenticated and not user.openhumansuser and user.gennoteseditor and user.genevieveuser.agreed_to_terms%}
   <p>
     <b>You're logged in with the following GenNotes account.</b> Edits to
     variant notes you make will be submitted to this account. Edits are
@@ -26,32 +106,57 @@
     this Genevieve site.
   </p>
   <hr>
-  {% if request.user.gennoteseditor.genome_upload_enabled %}
-    <p><a href="{% url 'genome_import' %}" class='btn btn-primary'>
-      Import genome</a></p>
-    <p>
-      Import a genome to create a private report. Genome data must be formatted
-      as VCF or gVCF, build 37.
-    </p>
-  {% else %}
-    <p>
-      Contact this site's admin
-      {% if genevieve_admin_email %}at
-      <b>{{ genevieve_admin_email }} </b>{% endif %}to request permission
-      to perform genome uploads.
-    </p>
-  {% endif %}
-{% else %}
+{% endif %}
+
+{% if request.user.genevieveuser.genome_upload_enabled and user.genevieveuser.agreed_to_terms %}
+<p><a href="{% url 'genome_import' %}" class='btn btn-primary'>
+  Import genome</a></p>
+<p>
+  Import a genome to create a private report. Genome data must be formatted
+  as VCF or gVCF, build 37.
+</p>
+<hr>
+{% endif %}
+
+{% if not user.is_authenticated or not user.openhumansuser %}
+  <h3>Connect Open Humans</h3>
   <p>
-    You'll need a <a href="{{ gennotes_server }}">GenNotes</a> account to log
-    in to Genevieve. (You can easily
-    <a href="{{ gennotes_signup_url }}">create an account</a> if you don't
-    already have one!) GenNotes is a server that stores and records notes on
-    genetic variants. Genevieve users can access and edit the genome notes
-    hosted by GenNotes.
+    Connect an <a href="{{ openhumans_url }}">Open Humans</a> account to enable
+    Genevieve to automatically create reports from the genetic data you've
+    added to Open Humans.
   </p>
-  <a href="{{ gennotes_auth_url }}" class='btn btn-default'>
-      Log in with a GenNotes account</a>
+  {% if not user.is_authenticated %}
+  <p>
+    Already connected? The button below will log you back in.
+  </p>
+  {% endif %}
+
+  <a href="{{ openhumans_auth_url }}" class='btn btn-primary btn-lg'>
+      Connect Open Humans</a>
+
+  <hr>
+{% endif %}
+
+{% if not user.is_authenticated %}
+
+{% include 'genevieve_client/partial_about.html' %}
+
+<h3>Can I contribute notes without connecting Open Humans?</h3>
+<p>
+  Even if you aren't interested in generating a report from your own genetic
+  data, we hope you consider connecting via Open Humans. As an Open Humans
+  member, you'll also be able to log in to our forums to discuss editing notes.
+</p>
+<p>
+  But if joining as an Open Humans member isn't an option, you can log in
+  directly with an authorized <a href="{{ gennotes_url }}">GenNotes</a> account.
+  <a href="{{ gennotes_signup_url }}">Create a GenNotes account</a> if
+  you don't already have one. Then use the button below to authorize notes
+  submissions and log in to Genevieve.
+</p>
+<a href="{{ gennotes_auth_url }}" class='btn btn-default btn-xs'
+    style="margin-bottom:20px;">
+  Log in with a GenNotes account</a>
 {% endif %}
 
 {% endblock %}
