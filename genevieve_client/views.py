@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import (DetailView, FormView, ListView,
@@ -274,21 +275,70 @@ class GenomeReportListView(ListView):
         return queryset.filter(user=self.request.user)
 
 
-class GenomeReportDetailView(DetailView):
-    model = GenomeReport
+class PublicGenomeReportListView(TemplateView):
+    template_name = 'genevieve_client/public_genomereport_list.html'
 
-    @method_decorator(login_required)
-    def dispatch(self, *args, **kwargs):
-        return super(GenomeReportDetailView, self).dispatch(*args, **kwargs)
+    @staticmethod
+    def public_oh_username_sources():
+        public_data = []
+        for source in ['pgp', 'twenty_three_and_me', 'ancestry_dna']:
+            params = {'source': source, 'limit': '1000'}
+            url = OpenHumansUser.BASE_URL + '/api/public-data/'
+            public_data += requests.get(url, params=params).json()['results']
+        public_oh_username_sources = {}
+        for item in public_data:
+            username = item['user']['username']
+            source = 'openhumans-' + item['source']
+            if username not in public_oh_username_sources:
+                public_oh_username_sources[username] = []
+            if source not in public_oh_username_sources[username]:
+                public_oh_username_sources[username].append(source)
+        return public_oh_username_sources
 
-    def get_queryset(self):
-        """Return object info only if this report belongs to this user."""
-        queryset = super(GenomeReportDetailView, self).get_queryset()
-        return queryset.filter(user=self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super(PublicGenomeReportListView, self).get_context_data(
+            **kwargs)
+        oh_reports = GenomeReport.objects.filter(
+            report_type__startswith='openhumans-')
+        public_username_sources = self.public_oh_username_sources()
+        public_reports = []
+        for gr in oh_reports:
+            oh_username = gr.user.openhumansuser.openhumans_username
+            if oh_username not in public_username_sources:
+                continue
+            if gr.report_type in public_username_sources[oh_username]:
+                public_reports.append(gr)
+        context['public_reports'] = public_reports
+        return context
+
+
+class GenomeReportDetailView(TemplateView):
+    template_name = 'genevieve_client/genomereport_detail.html'
+
+    def is_public(self):
+        report_type = self.genomereport.report_type
+        if not report_type.startswith('openhumans-'):
+            return False
+        oh_username = self.genomereport.user.openhumansuser.openhumans_username
+        source = re.match(r'openhumans-(.*)$', report_type).groups()[0]
+        params = {'source': source, 'username': oh_username}
+        public_data = requests.get(OpenHumansUser.BASE_URL + '/api/public-data/',
+                                   params=params).json()['results']
+        if (public_data and public_data[0]['user']['username'] == oh_username and
+                public_data[0]['source'] == source):
+            return True
+        return False
+
+    def dispatch(self, request, *args, **kwargs):
+        self.genomereport = GenomeReport.objects.get(pk=kwargs['pk'])
+        if self.is_public() or request.user == self.genomereport.user:
+            return super(GenomeReportDetailView, self).dispatch(
+                request, *args, **kwargs)
+        return redirect('home')
 
     def get_context_data(self, **kwargs):
         """
-        Add GenomeReport variants to context, sorted by allele frequency.
+        Add GenomeReport and variants to context, sorted by allele frequency.
 
         Sorting by allele frequency behaves "smartly" with respect to
         missing frequency information. If the variant allele matches reference
@@ -301,11 +351,11 @@ class GenomeReportDetailView(DetailView):
         MyVariant.info. (Inconsistency may be due to lag and changes within
         ClinVar monthly updates.)
         """
-        context = super(
-            GenomeReportDetailView, self).get_context_data(**kwargs)
+        context = {'genomereport': self.genomereport}
+
         # Get local and GenNotes data, organized according to b37_gennotes_id
         genome_variants = {gv.variant.b37_gennotes_id: gv for gv in
-                           self.object.genomevariant_set.all()}
+                           self.genomereport.genomevariant_set.all()}
         gennotes_data = {
             res['b37_id']: res for res in
             requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),

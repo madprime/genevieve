@@ -8,7 +8,8 @@ from .views import (AuthorizeGennotesView,
                     GenomeReportDetailView,
                     GenomeReportListView,
                     GenomeReportReprocessView,
-                    GenevieveNotesEditView)
+                    GenevieveNotesEditView,
+                    PublicGenomeReportListView)
 
 urlpatterns = [
     # Examples:
@@ -19,6 +20,9 @@ urlpatterns = [
 
     url(r'about/$', HomeView.as_view(template_name='genevieve_client/about.html'),
         name='about'),
+    url(r'public_reports/$',
+        PublicGenomeReportListView.as_view(),
+        name='public_reports'),
 
     url(r'genome_import/', GenomeImportView.as_view(), name='genome_import'),
 

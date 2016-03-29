@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h2>Public genome reports</h2>
+
+<table class="table">
+  <tr>
+    <th>Report name</th>
+  </tr>
+
+  {% for report in public_reports %}
+  <tr>
+    <td><a href="{% url 'genome_report_detail' report.pk %}">
+      {{ report.report_name }}</a></td>
+    <td>{{ report.get_genome_format_display }}</td>
+  </tr>
+  {% endfor %}
+
+</table>
+
+{% endblock %}

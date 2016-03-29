@@ -12,8 +12,10 @@
   This might destroy the current report. You may want to download a PDF copy
   for your records.
 </p>
+{% if genomereport.user == request.user %}
 <form action="." method="POST">
   {% csrf_token %}
   <input type="submit" value="Reprocess">
 </form>
+{% endif %}
 {% endblock content %}

@@ -5,12 +5,14 @@
 <script src="/static/js/genomereport_detail.js"></script>
 {% endblock js_scripts %}
 
-{% block head_title %}{{genomereport.report_name}}{% endblock %}
+{% block head_title %}{{ genomereport.report_name }}{% endblock %}
 
 {% block content %}
 <h2 id="report-name">{{ genomereport.report_name }}</h2>
 
+{% if genomereport.user == request.user %}
 <a class='btn btn-default btn-sm pull-right' href="{% url 'genome_report_reprocess' genomereport.id %}">Reprocess genome</a>
+{% endif %}
 <div id="download-as-csv"></div>
 
 <table id="genome-report" class="table" style="table-layout:fixed">
