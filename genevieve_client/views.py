@@ -476,7 +476,7 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
             headers={'Content-type': 'application/json',
                      'Authorization': 'Bearer {}'.format(
                          self.request.user.gennoteseditor.get_access_token())})
-        if out.status_code == 200:
+        if out.status_code == 201:
             messages.success(self.request, "Effect notes created!")
         else:
             messages.error(self.request, "Effect notes creation failed.")

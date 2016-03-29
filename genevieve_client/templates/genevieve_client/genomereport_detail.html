@@ -20,7 +20,6 @@
     <tr>
       <th style="width:180px;word-wrap:break-word;">Variant</th>
       <th width="100px">Allele Freq</th>
-      <th width="100px">Zygosity</th>
       <th>Info</th>
     </tr>
   </thead>
@@ -37,6 +36,7 @@
           {{ row_data.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
         </a></small></p>
       {% endif %}
+      <p>{{ row_data.genome_variant.get_zygosity_display }}</p>
     </td>
     <td class="gv-freq-cell">
       {% with row_data.variant.allele_frequency as freq %}
@@ -45,7 +45,6 @@
       {% else %}
         Unknown
       {% endif %}{% endwith %}</td>
-    <td width="100px">{{ row_data.genome_variant.get_zygosity_display }}</td>
     <td id="{{ gv.variant.id }}" class="gv-info-cell">
       {% for item in row_data.gennotes_data %}
         <div class="panel panel-info">
@@ -53,7 +52,7 @@
             <table>
               <tbody>
                 <tr>
-                  <th>
+                  <th style="width:120px;">
                     {% if item.tags.category == 'disease' %}
                       Disease:
                     {% else %}Trait:{% endif %}
@@ -89,7 +88,7 @@
                 <tr>
                   <th>Notes:</th>
                   <td>
-                    <p>{{ item.tags.notes }}</p>
+                    <p>{{ item.tags.notes|markdown }}</p>
                   </td>
                 </tr>
               </tbody>
