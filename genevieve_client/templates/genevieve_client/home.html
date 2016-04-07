@@ -5,7 +5,7 @@
 <h1>Genevieve</h1>
 
 {% if user.is_authenticated and not user.genevieveuser.agreed_to_terms %}
-<h2>Welcome!</h2>
+<h2>Please read and agree to the following.</h2>
 <p>
   Before we create any reports, we need to make sure you understand
   what Genevieve is &ndash; and isn't.
@@ -58,6 +58,12 @@
         <a href="http://www.openhumans.org/terms/">terms of use</a> as Open
         Humans, and I agree to these terms.
       </label>
+    </div>
+    {# SECRETCODE code #}
+    <div class="form-group">
+      <label for="secretcode">Secret code</label>
+      <input type="text" class="form-control" id="secretcode"
+       name="secretcode" placeholder="SECRETCODE">
     </div>
     <button type="submit" class="btn btn-primary" style="margin-bottom:15px;">
       Continue</button>

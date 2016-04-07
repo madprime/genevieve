@@ -66,8 +66,13 @@ class HomeView(TemplateView):
     def post(self, request, **kwargs):
         terms_categories = ['education_and_research', 'contains_errors',
                             'incomplete', 'public', 'terms']
-        if all([item in request.POST and request.POST[item] == 'on' for
-                item in terms_categories]):
+        secret_code = request.POST['secretcode']
+        if secret_code != settings.SECRETCODE:
+            messages.error(
+                request, 'Please give enter the secret code! '
+                'Genevieve is currently invite-only.')
+        elif all([item in request.POST and request.POST[item] == 'on' for
+                  item in terms_categories]):
             gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
             gvuser.agreed_to_terms = True
             gvuser.save()
