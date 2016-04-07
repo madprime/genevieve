@@ -94,10 +94,13 @@
               </tbody>
             </table>
             {% if request.user.gennoteseditor %}
-            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}">
-              Edit these notes</a>
+            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}"
+              class="btn btn-xs btn-default">Edit these notes</a>
             {% else %}
-            <a href="{{ gennotes_auth_url }}">Connect GenNotes to edit</a>
+            <button class="btn btn-xs btn-default" disabled>
+                Edit these notes</button>
+            <small><a href="{{ gennotes_auth_url }}">
+              Connect a GenNotes account</a> to edit notes.</small>
             {% endif %}
           </div>
         </div>
@@ -116,9 +119,13 @@
       {% endif %}
       <p>
         {% if request.user.gennoteseditor %}
-        <a href="{% url 'notes_edit' row_data.variant.id 0 %}">Add notes for a new effect</a>
+        <a href="{% url 'notes_edit' row_data.variant.id 0 %}"
+          class="btn btn-xs btn-default">Create notes for a new effect</a>
         {% else %}
-        <a href="{{ gennotes_auth_url }}">Connect GenNotes to add notes</a>
+        <button class="btn btn-xs btn-default" disabled>
+            Create notes for a new effect</button>
+        <small><a href="{{ gennotes_auth_url }}">Connect a GenNotes account</a>
+          to create notes.</small>
         {% endif %}
       </p>
     </td>
