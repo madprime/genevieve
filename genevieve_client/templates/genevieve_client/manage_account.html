@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h2>Manage your account</h2>
+
+{% if user.is_authenticated %}
+
+<h3>Open Humans</h3>
+
+{% if user.openhumansuser %}
+<p>
+  <b>Open Humans account:</b> {{ user.openhumansuser.openhumans_username}}
+</p>
+
+<form action="{% url 'manage_account' %}" method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-default btn-xs">
+    Refresh Open Humans data and reprocess all reports</button>
+</form>
+{% else %}
+
+<a href="{{ openhumans_auth_url }}" class='btn btn-primary btn-lg'>
+    Connect Open Humans</a>
+
+{% endif %}
+
+<h3>GenNotes</h3>
+
+<p>
+  A GenNotes account connection is required to create or edit notes.
+  <a href="{% url 'about_notes' %}">Read more about Genevieve's notes.</a>
+<p/>
+
+{% if user.gennotes_editor %}
+<p>
+  <b>GenNotes account:</b> {{ user.gennotes_editor.gennotes_username }}
+</p>
+{% else %}
+<a href="{{ gennotes_auth_url }}" class='btn btn-default btn-xs'>
+  Connect a GenNotes account</a>
+{% endif %}
+
+<h3>Account removal</h3>
+<p>
+  <a href="{% url 'delete_account' %}" class="btn btn-danger btn-xs">
+    Delete account and associated reports</a>
+</p>
+{% endif %}
+
+{% endblock %}

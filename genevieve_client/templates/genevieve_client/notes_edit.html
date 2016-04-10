@@ -65,6 +65,9 @@
   {% if genevieve_relation %}
     <input type="hidden" name="relation_version" value="{{ genevieve_relation.current_version }}">
   {% endif %}
+  {% if genome_report %}
+    <input type="hidden" name="genome_report" value="{{ genome_report }}">
+  {% endif %}
   <div class="form-group" style="margin-bottom:15px;">
     This variant is reported to affect a
       <select class="form-control" name="genevieve_effect_category">

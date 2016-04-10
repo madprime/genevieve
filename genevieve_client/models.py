@@ -4,6 +4,7 @@ import re
 import requests
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
@@ -102,6 +103,7 @@ class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     report_name = models.CharField(max_length=80)
     genome_file_url = models.TextField()
+    genome_file_created = models.TextField()
     last_processed = models.DateTimeField(null=True)
     report_type = models.CharField(max_length=80, blank=True)
     variants = models.ManyToManyField(Variant, through='GenomeVariant',
@@ -148,10 +150,14 @@ class GenomeReport(models.Model):
         if self.report_type.startswith('openhumans-'):
             source = re.match(
                 r'openhumans-(.*)$', self.report_type).groups()[0]
-            new_file_url = self.user.openhumansuser.file_url_for_source(
+            new_url, created = self.user.openhumansuser.file_url_for_source(
                 source, user_data=user_data)
-            if new_file_url:
-                self.file_url = new_file_url
+            if new_url:
+                self.file_url = new_url
+                # Changed creation indicates a fresh file for processing.
+                if created != self.created:
+                    self.created = created
+                    self.last_processed = None
                 self.save()
 
     def refresh(self, oh_user_data=None):
@@ -283,10 +289,11 @@ class OpenHumansUser(ConnectedUser):
                     'vcf' in datafile['metadata']['tags']):
                 candidate_datafiles.append(datafile)
         if len(candidate_datafiles) >= 1:
-            return candidate_datafiles[0]['download_url']
-        return None
+            return (candidate_datafiles[0]['download_url'],
+                    candidate_datafiles[0]['created'])
+        return None, None
 
-    def perform_genome_reports(self):
+    def perform_genome_reports(self, request=None):
         """
         Refresh genome reports or produce new ones. Only one per source.
         """
@@ -321,6 +328,11 @@ class OpenHumansUser(ConnectedUser):
                 # Avoid circular import.
                 from .tasks import produce_genome_report
                 produce_genome_report.delay(new_report)
+                if request:
+                    messages.success(request, (
+                        '"{}" started processing! Please give reports up to '
+                        "fifteen minutes to complete.".format(
+                            new_report.report_name)))
                 sources.remove(datafile['source'])
 
 

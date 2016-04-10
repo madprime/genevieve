@@ -4,7 +4,7 @@ import re
 import requests
 
 from django.conf import settings
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.urlresolvers import reverse_lazy, reverse
@@ -66,11 +66,14 @@ class HomeView(TemplateView):
     def post(self, request, **kwargs):
         terms_categories = ['education_and_research', 'contains_errors',
                             'incomplete', 'public', 'terms']
+
+        # SECRETCODE code.
         secret_code = request.POST['secretcode']
         if secret_code != settings.SECRETCODE:
             messages.error(
                 request, 'Please give enter the secret code! '
                 'Genevieve is currently invite-only.')
+
         elif all([item in request.POST and request.POST[item] == 'on' for
                   item in terms_categories]):
             gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
@@ -78,7 +81,7 @@ class HomeView(TemplateView):
             gvuser.save()
             try:
                 ohuser = OpenHumansUser.objects.get(user=request.user)
-                ohuser.perform_genome_reports()
+                ohuser.perform_genome_reports(request=request)
             except OpenHumansUser.DoesNotExist:
                 pass
         else:
@@ -86,6 +89,29 @@ class HomeView(TemplateView):
                 request, 'Please agree to our terms of use and indicate you '
                 'understand important aspects of Genevieve.')
         return super(HomeView, self).get(request, **kwargs)
+
+
+class DeleteAccountView(TemplateView):
+    template_name = 'genevieve_client/delete_account.html'
+
+    def post(self, request, **kwargs):
+        user = request.user
+        logout(request)
+        user.delete()
+        messages.success(request, "Your account has been deleted, as have "
+                         "associated genome reports.")
+        return redirect('home')
+
+
+class ManageAccountView(TemplateView):
+    template_name = 'genevieve_client/manage_account.html'
+
+    def post(self, request, **kwargs):
+        request.user.openhumansuser.perform_genome_reports()
+        messages.success(request, "Open Humans data and reports refreshed! "
+                         "Please give reports up to fifteen minutes for "
+                         "processing.")
+        return redirect('home')
 
 
 class AuthorizeOpenHumansView(RedirectView):
@@ -432,7 +458,6 @@ class GenomeReportDetailView(TemplateView):
             report_rows.append(row_data)
         context.update({
             'report_rows': report_rows,
-            'gennotes_auth_url': GennotesEditor.AUTH_URL,
             })
         return context
 
@@ -541,6 +566,10 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
                             self.genevieve_relation else None) if not
                             self.effect_data else self.effect_data),
         })
+        if 'report' in self.request.GET:
+            context.update({
+                'genome_report': self.request.GET['report']
+            })
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -570,4 +599,6 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
             self.create_genevieve_effect_relation(genevieve_effect_data)
         else:
             self.update_genevieve_effect_relation(genevieve_effect_data)
-        return super(GenevieveNotesEditView, self).get(request, *args, **kwargs)
+        if 'genome_report' in request.POST:
+            return redirect('genome_report_detail', pk=request.POST['genome_report'])
+        return redirect('home')

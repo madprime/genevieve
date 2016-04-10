@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h2>Confirm account deletion?</h2>
+
+<p class="lead">
+  Deleting your account will delete any associated genome report(s).
+</p>
+
+<form action="{% url 'delete_account' %}" method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger" style="margin-bottom:15px;">
+    Delete account and associated genome reports</button>
+</form>
+{% endblock %}

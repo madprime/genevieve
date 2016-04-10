@@ -53,6 +53,10 @@
           <ul class="nav navbar-nav">
             <li><a href="{% url 'about' %}">About</a></li>
             <li><a href="{% url 'public_reports' %}">Public reports</a></li>
+            <li><a href="{% url 'about_notes' %}">Notes</a></li>
+            {% if user.is_authenticated %}
+            <li><a href="{% url 'manage_account' %}">Manage account</a></li>
+            {% endif %}
             <!-- Fill this with menu items as needed.
             <li><a href="#">Link</a></li>
             -->

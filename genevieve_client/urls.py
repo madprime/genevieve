@@ -3,12 +3,14 @@ from django.contrib import admin
 
 from .views import (AuthorizeGennotesView,
                     AuthorizeOpenHumansView,
+                    DeleteAccountView,
                     HomeView,
                     GenomeImportView,
                     GenomeReportDetailView,
                     GenomeReportListView,
                     GenomeReportReprocessView,
                     GenevieveNotesEditView,
+                    ManageAccountView,
                     PublicGenomeReportListView)
 
 urlpatterns = [
@@ -20,6 +22,10 @@ urlpatterns = [
 
     url(r'about/$', HomeView.as_view(template_name='genevieve_client/about.html'),
         name='about'),
+    url(r'about_notes/$',
+        HomeView.as_view(template_name='genevieve_client/about_notes.html'),
+        name='about_notes'),
+
     url(r'public_reports/$',
         PublicGenomeReportListView.as_view(),
         name='public_reports'),
@@ -47,4 +53,10 @@ urlpatterns = [
 
     # django-allauth URLs
     url(r'^accounts/', include('allauth.urls')),
+
+    # Account management
+    url(r'manage_account/$',
+        ManageAccountView.as_view(),
+        name='manage_account'),
+    url(r'^delete_account/', DeleteAccountView.as_view(), name='delete_account'),
 ]

@@ -13,7 +13,17 @@
 {% if genomereport.user == request.user %}
 <a class='btn btn-default btn-sm pull-right' href="{% url 'genome_report_reprocess' genomereport.id %}">Reprocess genome</a>
 {% endif %}
-<div id="download-as-csv"></div>
+
+{% if not report_rows %}
+<div class="panel panel-primary">
+  <div class="panel-heading">Genome report not yet complete.</div>
+  <div class="panel-body">
+    This report currently has no data. If this report is new or recently
+    refreshed, it's probably still in processing. You'll need to reload this
+    page to check if it's complete. Please give reports up to fifteen minutes.
+  </div>
+</div>
+{% endif %}
 
 <table id="genome-report" class="table" style="table-layout:fixed">
   <thead>
@@ -66,12 +76,12 @@
                   <td>{{ item.tags.inheritance }}</td>
                 </tr>
                 <tr>
-                  <th>Evidence:</th>
-                  <td>{{ item.tags.evidence }}</td>
-                </tr>
-                <tr>
                   <th>Significance:</th>
                   <td>{{ item.tags.significance }}</td>
+                </tr>
+                <tr>
+                  <th>Evidence:</th>
+                  <td>{{ item.tags.evidence }}</td>
                 </tr>
                 {% if item.tags.clinvar_rcv_records %}
                 <tr>
@@ -94,13 +104,8 @@
               </tbody>
             </table>
             {% if request.user.gennoteseditor %}
-            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}"
+            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}?report={{ genomereport.id }}"
               class="btn btn-xs btn-default">Edit these notes</a>
-            {% else %}
-            <button class="btn btn-xs btn-default" disabled>
-                Edit these notes</button>
-            <small><a href="{{ gennotes_auth_url }}">
-              Connect a GenNotes account</a> to edit notes.</small>
             {% endif %}
           </div>
         </div>
@@ -119,13 +124,8 @@
       {% endif %}
       <p>
         {% if request.user.gennoteseditor %}
-        <a href="{% url 'notes_edit' row_data.variant.id 0 %}"
+        <a href="{% url 'notes_edit' row_data.variant.id 0 %}?report={{ genomereport.id }}"
           class="btn btn-xs btn-default">Create notes for a new effect</a>
-        {% else %}
-        <button class="btn btn-xs btn-default" disabled>
-            Create notes for a new effect</button>
-        <small><a href="{{ gennotes_auth_url }}">Connect a GenNotes account</a>
-          to create notes.</small>
         {% endif %}
       </p>
     </td>

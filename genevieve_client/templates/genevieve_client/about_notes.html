@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h2>About Genevieve's Notes</h2>
+
+<p class="lead">
+  Genevieve also allows users to create or edit shared notes, to augment
+  ClinVar data.
+</p>
+
+<ol class="lead">
+  <li><a href="#whynotes">Why add notes?</a></li>
+  <li><a href="#whatinfo">What information is in a note?</a></li>
+  <li><a href="#howadd">How to add and edit notes</a></li>
+</ol>
+
+<h3 id="whynotes">Why have notes?</h3>
+
+<p>
+  Sometimes the database information for a reported effect is
+  confusing or clearly incorrect. It might lack important details
+  (e.g. "recessive or dominant?"). There might be literature that's
+  helpful to know about. Notes are a simple supplement that help
+  improve information about a variant.
+</p>
+<p>
+  Notes also create consensus. Notes are unified: there should only be one
+  note for an effect, and everyone can see and edit the same note.
+</p>
+
+<h3 id="whatinfo">What information is in a note?</h3>
+
+<p>
+  Each note relates to a reported effect. If a single variant is reported to
+  have different effects, these should be different notes.
+</p>
+
+<p>
+  Each note contains the following fields:
+</p>
+
+<table class="table">
+  <tbody>
+    <tr>
+      <th>Name</th>
+      <td>
+        <b>The name of the disease or trait.</b> (required)
+        <p>
+          This might be identical to the condition name a ClinVar record has
+          reported. If there is no "name" for an effect, this should be a
+          brief description (e.g. "blue or gray eyes").
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>Category</th>
+      <td>
+        <p>
+          <b>Disease</b> (default), <b>Trait</b>, or <b>Other</b>
+        </p>
+        <p>
+          The default is to classify a new effect as a "disease", but some
+          effects are not considered diseases.
+        </p>
+        <p>
+          In reports this note field isn't separately reported. It affects
+          how the "name" field is displayed (i.e. as a "disease" or "trait").
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>Inheritance</th>
+      <td>
+        <p>
+          <b>Dominant</b>, <b>Recessive</b>, <b>Additive</b>, or <b>Unknown or Other</b> (Default)
+        </p>
+        <p>
+          A dominant effect impacts all carriers. A recessive
+          effect only occurs when all copies of the gene are affected
+          (e.g. if someone is "homozygous"). X-linked diseases should be
+          classified as recessive. An "additive" effect impacts all carriers,
+          but the effect is stronger when both copies of the gene are affected.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>Significance</th>
+      <td>
+        <p>
+          <b>Causal</b> (default), <b>Risk factor</b>, or <b>Protective</b>
+        </p>
+        <p>
+          The default ("causal") describes effects that are typically considered
+          hereditary genetic diseases, i.e. "this variant causes this disease".
+          If a reported effect is instead a small or moderate increased risk,
+          it's a "risk factor". A reported effect that decreases risk is
+          "protective".
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>Evidence</th>
+      <td>
+        <p>
+          <b>Well-established</b>, <b>Reported</b> (default), <b>Contradicted</b>
+        </p>
+        <p>
+          This category describes the strength of evidence for this effect.
+          All effects are, by default, "reported". If an effect is clearly not
+          true, then it may be re-classified as "contradicted". On the other
+          hand, if an effect is clearly validated through numerous publications
+          or reporting sources, it may be re-classified as "well-established".
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>ClinVar records</th>
+      <td>
+        <p>
+          <b>ClinVar records related to this reported effect.</b> (optional)
+        </p>
+        <p>
+          All ClinVar records for this variant that relate to this reported
+          effect.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <th>Notes</th>
+      <td>
+        <p>
+          <b>Additional notes about the effect.</b> (optional)
+        </p>
+        <p>
+          A Markdown-formatted free text field to add more information. For
+          effects re-classified as "well-established" or "contradicted", this
+          section would typically contain an explanation for this
+          re-classification.
+        </p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="howadd">How to add and edit notes</h3>
+
+<p>You need a connected GenNotes account to create or edit notes.</p>
+
+<p>
+  Notes you create or edit will be edits submitted on your behalf. All notes
+  are public domain. Also, although it's not currently visible in Genevieve,
+  the GenNotes username associated with an edit will be considered publicly
+  shareable information.
+</p>
+
+{% if request.user.gennoteseditor %}
+<div class="well well-sm">
+  <b>Account connected.</b>
+  This account is connected to the GenNotes account for
+      "{{ request.user.gennoteseditor.gennotes_username }}".
+</div>
+
+{% else %}
+<p>
+  To create a connected GenNotes account...
+</p>
+
+<ol style="margin-bottom:20px;">
+  <li><a href="{{ gennotes_signup_url }}">Create a GenNotes account</a>.</li>
+  <li>Verify the email for that account.</li>
+  <li>
+    If you already have an Open Humans account, make sure you're already
+    logged in to it.
+  </li>
+  <li>
+    Click the button below to connect and authorize note submission.
+    You'll be returned to the Genevieve home page after connecting.<br>
+    <a class="btn btn-default btn-xs" href="{{ gennotes_auth_url }}">
+      Connect your GenNotes account</a></li>
+  </li>
+</ol>
+{% endif %}
+
+<h4>Note-taking tips</h4>
+
+<p>
+  <b>Defaults values are good.</b>
+  If you're not sure what to pick, the default is a safe choice.
+  Almost every field has a default value.
+</p>
+
+<p>
+  <b>It's fine to skip the text notes.</b> For example, you might just want
+  to note whether a reported effect is dominant or recessive.
+</p>
+
+<hr style="margin-bottom:60px;">
+
+{% endblock %}
