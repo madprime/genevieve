@@ -276,7 +276,7 @@ class OpenHumansUser(ConnectedUser):
             if report.report_type.startswith('openhumans-'):
                 source = re.match(
                     r'openhumans-(.*)$', report.report_type).groups()[0]
-            ohreports_by_source[source] = report
+                ohreports_by_source[source] = report
         return ohreports_by_source
 
     def file_url_for_source(self, source, user_data=None):
