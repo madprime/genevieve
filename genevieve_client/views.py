@@ -405,14 +405,30 @@ class GenomeReportDetailView(TemplateView):
                            self.genomereport.genomevariant_set.all()}
         if not genome_variants:
             return context
-        gennotes_data = {
-            res['b37_id']: res for res in
-            requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
-                         params={'variant_list': json.dumps(
-                                 genome_variants.keys()),
-                                 'page_size': 10000}
-                         ).json()['results']
-            }
+        gennotes_data = {}
+        genome_variant_list = genome_variants.keys()
+        while genome_variant_list:
+            if len(genome_variant_list) > 100:
+                sub_list = genome_variant_list[0:100]
+                genome_variant_list = genome_variant_list[100:]
+                gennotes_data.update({
+                    res['b37_id']: res for res in
+                    requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
+                                 params={'variant_list': json.dumps(
+                                         sub_list),
+                                         'page_size': 10000}
+                                 ).json()['results']
+                    })
+            else:
+                gennotes_data.update({
+                    res['b37_id']: res for res in
+                    requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
+                                 params={'variant_list': json.dumps(
+                                         genome_variant_list),
+                                         'page_size': 10000}
+                                 ).json()['results']
+                    })
+                genome_variant_list = []
         variants_by_freq = sorted(
             genome_variants.keys(),
             key=lambda k: (

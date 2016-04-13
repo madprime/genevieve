@@ -298,9 +298,10 @@ class OpenHumansUser(ConnectedUser):
         Refresh genome reports or produce new ones. Only one per source.
         """
         user_data = self.get_user_data()
-        sources = ['twenty_three_and_me', 'ancestry_dna', 'pgp']
-        source_names = {'twenty_three_and_me': '23andMe',
-                        'ancestry_dna': 'AncestryDNA',
+        # Sources removed: 'twenty_three_and_me', 'ancestry_dna',
+        sources = ['pgp']
+        source_names = {#'twenty_three_and_me': '23andMe',
+                        #'ancestry_dna': 'AncestryDNA',
                         'pgp': 'Harvard PGP'}
         current_reports = self.get_current_ohreports_by_source()
 
