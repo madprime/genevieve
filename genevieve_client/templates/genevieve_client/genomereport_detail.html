@@ -51,7 +51,7 @@
         {{ row_data.variant.b37_hgvs_id }}
       </p>
       {% if row_data.variant.myvariant_clinvar %}
-        <p><small><b>ClinVar:</b> <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ gv.variant.myvariant_clinvar.variant_id }}/">
+        <p><small><b>ClinVar:</b> <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ row_data.variant.myvariant_clinvar.variant_id }}/">
           {{ row_data.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
         </a></small></p>
       {% endif %}
