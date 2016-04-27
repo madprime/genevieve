@@ -299,8 +299,8 @@ class OpenHumansUser(ConnectedUser):
         """
         user_data = self.get_user_data()
         # Sources removed: 'twenty_three_and_me', 'ancestry_dna',
-        sources = ['pgp']
-        source_names = {#'twenty_three_and_me': '23andMe',
+        sources = ['pgp', 'twenty_three_and_me']
+        source_names = {'twenty_three_and_me': '23andMe',
                         #'ancestry_dna': 'AncestryDNA',
                         'pgp': 'Harvard PGP'}
         current_reports = self.get_current_ohreports_by_source()

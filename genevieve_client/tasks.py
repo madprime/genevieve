@@ -130,12 +130,19 @@ def produce_genome_report(genome_report, reprocess=False):
         if not dbns:
             continue
 
-        variant, _ = Variant.objects.get_or_create(chromosome=chrom,
-                                                   pos=pos,
-                                                   ref_allele=ref_allele,
-                                                   var_allele=var_allele,
-                                                   myvariant_clinvar={},
-                                                   myvariant_exac={})
+        try:
+            variant = Variant.objects.get(chromosome=chrom,
+                                          pos=pos,
+                                          ref_allele=ref_allele,
+                                          var_allele=var_allele)
+        except Variant.DoesNotExist:
+            variant = Variant(chromosome=chrom,
+                              pos=pos,
+                              ref_allele=ref_allele,
+                              var_allele=var_allele,
+                              myvariant_clinvar={},
+                              myvariant_exac={})
+            variant.save()
 
         genome_variant, _ = GenomeVariant.objects.get_or_create(
             genome=genome_report,
