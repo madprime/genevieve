@@ -155,13 +155,13 @@ class GenomeReport(models.Model):
             if new_url:
                 self.file_url = new_url
                 # Changed creation indicates a fresh file for processing.
-                if created != self.created:
-                    self.created = created
+                if created != self.genome_file_created:
+                    self.genome_file_created = created
                     self.last_processed = None
                 self.save()
 
-    def refresh(self, oh_user_data=None):
-        if self.new_clinvar_available():
+    def refresh(self, oh_user_data=None, force=False):
+        if self.new_clinvar_available() or force:
             # Refresh file URL for Open Humans data.
             if self.report_type.startswith('openhumans-'):
                 self.refresh_oh_report_file_url(user_data=oh_user_data)

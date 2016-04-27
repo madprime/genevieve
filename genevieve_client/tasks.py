@@ -79,6 +79,7 @@ def setup_clinvar_file():
 def produce_genome_report(genome_report, reprocess=False):
     # Try to locally store and reuse the genome file.
     # Retrieve again if not available (e.g. due to ephemeral file storage).
+    print "Producing genome report for report ID: {}".format(genome_report.id)
     local_file_dir = os.path.join(
         settings.LOCAL_STORAGE_ROOT,
         'local_genome_files',
