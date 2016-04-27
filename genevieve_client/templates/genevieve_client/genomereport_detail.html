@@ -23,6 +23,15 @@
     page to check if it's complete. Please give reports up to fifteen minutes.
   </div>
 </div>
+{% else %}
+<form>
+  <div class="checkbox">
+    <label>
+      <input id="report-filter-contradicted" type="checkbox"
+       name="report-filter" checked> Hide contradicted effects
+    </label>
+  </div>
+</form>
 {% endif %}
 
 <table id="genome-report" class="table" style="table-layout:fixed">
@@ -36,28 +45,32 @@
 
   <tbody>
   {% for row_data in report_rows %}
-  <tr class="gv-row" id="gv-b37-{{ row_data.variant.b37_id }}">
+  <tr class="gv-row {{ row_data|variant_flags }}" id="gv-b37-{{ row_data.variant.b37_id }}">
     <td class="gv-id-cell" style="width:150px;word-wrap:break-word;">
       <p>
         {{ row_data.variant.b37_hgvs_id }}
       </p>
-      {% if gv.variant.myvariant_clinvar %}
-        <p><small><a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ gv.variant.myvariant_clinvar.variant_id }}/">
+      {% if row_data.variant.myvariant_clinvar %}
+        <p><small><b>ClinVar:</b> <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{{ gv.variant.myvariant_clinvar.variant_id }}/">
           {{ row_data.variant.myvariant_clinvar.rcv.0.preferred_name|space_after_colon }}
         </a></small></p>
       {% endif %}
       <p>{{ row_data.genome_variant.get_zygosity_display }}</p>
     </td>
     <td class="gv-freq-cell">
-      {% with row_data.variant.allele_frequency as freq %}
-      {% if freq %}
-        {{ freq|floatformat:'-6' }}
+      {% if row_data.variant.myvariant_exac %}
+      <a href="http://exac.broadinstitute.org/variant/{{ variant.b37_exac_id }}">{{ row_data.variant.allele_frequency|floatformat:'-6' }}</a>
       {% else %}
+        {% if row_data.variant.allele_frequency %}
+        {{ row_data.variant.allele_frequency|floatformat:'-6' }}
+        {% else %}
         Unknown
-      {% endif %}{% endwith %}</td>
+        {% endif %}
+      {% endif %}
+    </td>
     <td id="{{ gv.variant.id }}" class="gv-info-cell">
       {% for item in row_data.gennotes_data %}
-        <div class="panel panel-info">
+        <div class="panel panel-info {{ item|note_flags }}">
           <div class="panel-body">
             <table>
               <tbody>
@@ -73,11 +86,11 @@
                   <th>
                     Inheritance:
                   </th>
-                  <td>{{ item.tags.inheritance }}</td>
+                  <td>{{ item.tags.inheritance|inheritance_display }}</td>
                 </tr>
                 <tr>
                   <th>Significance:</th>
-                  <td>{{ item.tags.significance }}</td>
+                  <td>{{ item.tags.significance|significance_display }}</td>
                 </tr>
                 <tr>
                   <th>Evidence:</th>

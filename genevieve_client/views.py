@@ -378,7 +378,7 @@ class GenomeReportDetailView(TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.genomereport = GenomeReport.objects.get(pk=kwargs['pk'])
-        if self.is_public() or request.user == self.genomereport.user:
+        if request.user == self.genomereport.user or self.is_public():
             return super(GenomeReportDetailView, self).dispatch(
                 request, *args, **kwargs)
         return redirect('home')
