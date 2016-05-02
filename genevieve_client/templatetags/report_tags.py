@@ -18,6 +18,8 @@ def variant_flags(row_data):
     for item in row_data['gennotes_data']:
         if item['tags']['evidence'] != 'contradicted':
             all_contradicted = False
+    if row_data['unclaimed_rcvs']:
+        all_contradicted = False
     if all_contradicted:
         flags.append('flag-contradicted')
 
