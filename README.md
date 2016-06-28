@@ -27,6 +27,7 @@ an alternate version of this app.
 
 ### Dependencies
 
+- Python 3.5.1
 - postgres (`apt-get install libpq-dev python-dev` and
   `apt-get install postgresql postgresql-contrib` in Debian/Ubuntu)
 - RabbitMQ (`apt-get install rabbitmq-server` in Debian/Ubuntu)
