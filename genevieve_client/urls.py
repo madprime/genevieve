@@ -3,6 +3,7 @@ from django.contrib import admin
 
 from .views import (AuthorizeGennotesView,
                     AuthorizeOpenHumansView,
+                    CompleteSignupView,
                     DeleteAccountView,
                     HomeView,
                     GenomeImportView,
@@ -20,7 +21,11 @@ urlpatterns = [
 
     url(r'^$', HomeView.as_view(), name='home'),
 
-    url(r'about/$', HomeView.as_view(template_name='genevieve_client/about.html'),
+    url(r'complete_signup/$', CompleteSignupView.as_view(),
+        name='complete_signup'),
+
+    url(r'about/$',
+        HomeView.as_view(template_name='genevieve_client/about.html'),
         name='about'),
     url(r'about_notes/$',
         HomeView.as_view(template_name='genevieve_client/about_notes.html'),

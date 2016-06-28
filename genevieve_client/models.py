@@ -187,6 +187,7 @@ class GenomeVariant(models.Model):
 class GenevieveUser(models.Model):
     user = models.OneToOneField(User)
     genome_upload_enabled = models.BooleanField(default=False)
+    passed_quiz = models.BooleanField(default=False)
     agreed_to_terms = models.BooleanField(default=False)
 
 

@@ -21,50 +21,47 @@
 
 <hr>
 <p>
+  <b>Please show us you understand by answering the following questions.</b>
+</p>
+<p>
   <form action="{% url 'home' %}" method="post">
     {% csrf_token %}
-    <div class="checkbox" style="margin-bottom:15px;">
-      <label>
-        <input type="checkbox" name="education_and_research">
-        I understand Genevieve is intended for educational and research use,
-        and not for clinical use.
-      </label>
-    </div>
-    <div class="checkbox" style="margin-bottom:15px;">
-      <label>
-        <input type="checkbox" name="contains_errors">
-        I understand many reported variant effects in Genevieve will be
-        incorrect.
-      </label>
-    </div>
-    <div class="checkbox" style="margin-bottom:15px;">
-      <label>
-        <input type="checkbox" name="incomplete">
-        I understand Genevieve may fail to highlight information that I or
-        others consider important.
-      </label>
-    </div>
-    <div class="checkbox" style="margin-bottom:15px;">
-      <label>
-        <input type="checkbox" name="public">
-        I understand that Genevieve will publicly share my report if the
-        corresponding Open Humans data is public.
-      </label>
-    </div>
-    <div class="checkbox" style="margin-bottom:15px;">
-      <label>
-        <input type="checkbox" name="terms">
-        I understand Genevieve is governed by the same
-        <a href="http://www.openhumans.org/terms/">terms of use</a> as Open
-        Humans, and I agree to these terms.
-      </label>
-    </div>
-    {# SECRETCODE code #}
-    <div class="form-group">
-      <label for="secretcode">Secret code</label>
-      <input type="text" class="form-control" id="secretcode"
-       name="secretcode" placeholder="SECRETCODE">
-    </div>
+    <p>
+      <h4>What is Genevieve's intended use?</h4>
+      <div class="radio">
+        <label><input type="radio" name="intended_use" value="clinical">Clinical testing.</label>
+      </div>
+      <div class="radio">
+        <label><input type="radio" name="intended_use" value="educational">Educational and research use.</label>
+      </div>
+    </p>
+    <p>
+      <h4>Is Genevieve accurate?</h4>
+      <div class="radio">
+        <label><input type="radio" name="accurate" value="no">No. Genevieve will contain errors. Many reported effects will be incorrect.</label>
+      </div>
+      <div class="radio">
+        <label><input type="radio" name="accurate" value="yes">Yes. Genevieve ensures high quality through expert review.</label>
+      </div>
+    </p>
+    <p>
+      <h4>Is Genevieve comprehensive?</h4>
+      <div class="radio">
+        <label><input type="radio" name="comprehensive" value="no">No, Genevieve may fail to highlight information I consider important.</label>
+      </div>
+      <div class="radio">
+        <label><input type="radio" name="comprehensive" value="yes">Yes, Genevieve will discover and report all important variants in a data set.</label>
+      </div>
+    </p>
+    <p>
+      <h4>Will your Genevieve report be private?</h4>
+      <div class="radio">
+        <label><input type="radio" name="private" value="yes">Yes. All Genevieve reports are private.</input></label>
+      </div>
+      <div class="radio">
+        <label><input type="radio" name="private" value="depends">Only if my genetic data is private in Open Humans. If my genetic data is public on Open Humans, my Genevieve report will also be publicly shared.</label>
+      </div>
+    </p>
     <button type="submit" class="btn btn-primary" style="margin-bottom:15px;">
       Continue</button>
   </form>

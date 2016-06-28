@@ -47,6 +47,40 @@ def make_unique_username(base):
                 return name
 
 
+class CompleteSignupView(TemplateView):
+    template_name = 'genevieve_client/complete_signup.html'
+
+    def post(self, request, **kwargs):
+        terms_categories = ['education_and_research', 'contains_errors',
+                            'incomplete', 'public', 'terms']
+
+        # SECRETCODE code.
+        secret_code = request.POST['secretcode']
+        if secret_code != settings.SECRETCODE:
+            messages.error(
+                request, 'Please give enter the secret code! '
+                'Genevieve is currently invite-only.')
+            return super(CompleteSignupView, self).get(request, **kwargs)
+        elif all([item in request.POST and request.POST[item] == 'on' for
+                  item in terms_categories]):
+            gvuser = GenevieveUser.objects.get(user=request.user)
+            gvuser.agreed_to_terms = True
+            gvuser.save()
+            try:
+                ohuser = OpenHumansUser.objects.get(user=request.user)
+                ohuser.perform_genome_reports(request=request)
+            except OpenHumansUser.DoesNotExist:
+                pass
+        else:
+            messages.error(
+                request, 'Please agree to our terms of use and indicate you '
+                'understand important aspects of Genevieve.')
+            return super(CompleteSignupView, self).get(request, **kwargs)
+        messages.success(
+            request, "Welcome to Genevieve! We'll work on a report now.")
+        return redirect('home')
+
+
 class HomeView(TemplateView):
     template_name = 'genevieve_client/home.html'
 
@@ -64,31 +98,36 @@ class HomeView(TemplateView):
         return super(HomeView, self).get_context_data(**kwargs)
 
     def post(self, request, **kwargs):
-        terms_categories = ['education_and_research', 'contains_errors',
-                            'incomplete', 'public', 'terms']
-
-        # SECRETCODE code.
-        secret_code = request.POST['secretcode']
-        if secret_code != settings.SECRETCODE:
+        post = request.POST
+        passed = True
+        for item in ['intended_use', 'comprehensive', 'accurate', 'private']:
+            if item not in post:
+                messages.error(request, 'Please answer all quiz questions.')
+                passed = False
+                break
+        if 'intended_use' in post and post['intended_use'] != 'educational':
             messages.error(
-                request, 'Please give enter the secret code! '
-                'Genevieve is currently invite-only.')
-
-        elif all([item in request.POST and request.POST[item] == 'on' for
-                  item in terms_categories]):
+                request, 'Sorry, Genevieve is NOT intended for clinical use.')
+            passed = False
+        if 'accurate' in post and post['accurate'] != 'no':
+            messages.error(request, 'Sorry, Genevieve is NOT accurate.')
+            passed = False
+        if 'comprehensive' in post and post['comprehensive'] != 'no':
+            messages.error(request, 'Sorry, Genevieve is NOT comprehensive.')
+            passed = False
+        if 'private' in post and post['private'] != 'depends':
+            messages.error(
+                request, 'Sorry, Genevieve is NOT always private. If genetic '
+                'data is public on Open Humans, the Genevieve report will be '
+                'public.')
+            passed = False
+        if passed:
             gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
-            gvuser.agreed_to_terms = True
+            gvuser.passed_quiz = True
             gvuser.save()
-            try:
-                ohuser = OpenHumansUser.objects.get(user=request.user)
-                ohuser.perform_genome_reports(request=request)
-            except OpenHumansUser.DoesNotExist:
-                pass
+            return redirect('complete_signup')
         else:
-            messages.error(
-                request, 'Please agree to our terms of use and indicate you '
-                'understand important aspects of Genevieve.')
-        return super(HomeView, self).get(request, **kwargs)
+            return super(HomeView, self).get(request, **kwargs)
 
 
 class DeleteAccountView(TemplateView):
