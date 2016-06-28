@@ -10,6 +10,7 @@ defusedxml==0.4.1
 dj-database-url==0.4.1
 django-allauth==0.25.2
 env-tools==2.0.0
+gunicorn==19.6.0
 html5lib==0.9999999
 kombu==3.0.35
 myvariant==0.2.0
