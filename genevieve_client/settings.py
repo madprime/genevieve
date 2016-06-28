@@ -51,7 +51,6 @@ INSTALLED_APPS = (
     # Third party apps
     'allauth',
     'allauth.account',
-    'debug_toolbar',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = [
@@ -161,16 +160,7 @@ ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
-# Site admin settings
-SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL')
-
 LOGIN_REDIRECT_URL = 'home'
-
-# Django debug toolbar settings
-# http://django-debug-toolbar.readthedocs.org/en/latest/configuration.html#debug-toolbar-panels
-DEBUG_TOOLBAR_PANELS = [
-    'debug_toolbar.panels.sql.SQLPanel',
-]
 
 # GenNotes client ID and secret.
 GENNOTES_CLIENT_ID = os.getenv('GENNOTES_CLIENT_ID')

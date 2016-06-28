@@ -293,7 +293,7 @@ class GenomeImportView(FormView):
     def form_valid(self, form):
         # Double-check that user has permission to upload genome.
         if not self.request.user.genevieveuser.genome_upload_enabled:
-            print "Not authorized for genome upload??"
+            print("Not authorized for genome upload??")
             messages.error(self.request,
                            'Account not authorized to upload genomes.')
             return self.form_invalid(form)
@@ -406,7 +406,7 @@ class GenomeReportDetailView(TemplateView):
         if not genome_variants:
             return context
         gennotes_data = {}
-        genome_variant_list = genome_variants.keys()
+        genome_variant_list = list(genome_variants.keys())
         while genome_variant_list:
             if len(genome_variant_list) > 100:
                 sub_list = genome_variant_list[0:100]

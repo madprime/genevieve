@@ -7,7 +7,10 @@ from ftplib import FTP
 import gzip
 import os
 import re
-import urlparse
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
 from celery import shared_task
 from django.conf import settings
@@ -18,21 +21,6 @@ from vcf2clinvar import clinvar_update
 from vcf2clinvar.common import CHROM_INDEX, REV_CHROM_INDEX
 
 from .models import Variant, GenomeVariant, CHROMOSOMES
-
-
-def setup_twobit_file():
-    local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
-                                 'genome_processing_files')
-    if not os.path.exists(local_storage):
-        os.makedirs(local_storage)
-    twobit_filepath = os.path.join(local_storage, 'hg19.2bit')
-    if not os.path.exists(twobit_filepath):
-        with open(twobit_filepath, 'w') as fh:
-            ftp = FTP('hgdownload.cse.ucsc.edu')
-            ftp.login(user='anonymous', passwd=settings.SUPPORT_EMAIL)
-            ftp.cwd('goldenPath/hg19/bigZips/')
-            ftp.retrbinary('RETR hg19.2bit', fh.write)
-    return twobit_filepath
 
 
 def get_remote_file(url, tempdir):
@@ -79,7 +67,7 @@ def setup_clinvar_file():
 def produce_genome_report(genome_report, reprocess=False):
     # Try to locally store and reuse the genome file.
     # Retrieve again if not available (e.g. due to ephemeral file storage).
-    print "Producing genome report for report ID: {}".format(genome_report.id)
+    print("Producing genome report for report ID: {}".format(genome_report.id))
     local_file_dir = os.path.join(
         settings.LOCAL_STORAGE_ROOT,
         'local_genome_files',
