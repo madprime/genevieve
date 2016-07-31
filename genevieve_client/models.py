@@ -61,9 +61,16 @@ class Variant(models.Model):
     @property
     def allele_frequency(self):
         if self.myvariant_exac:
-            ac = self.myvariant_exac['ac']['ac']
-            an = self.myvariant_exac['an']['an']
-            return ac * 1.0 / an
+            ac = None
+            if type(self.myvariant_exac['alleles']) == list:
+                if self.var_allele in self.myvariant_exac['alleles']:
+                    idx = self.myvariant_exac['alleles'].index(self.var_allele)
+                    ac = self.myvariant_exac['ac']['ac'][idx]
+            else:
+                ac = self.myvariant_exac['ac']['ac']
+            if ac:
+                an = self.myvariant_exac['an']['an']
+                return ac * 1.0 / an
         elif self.myvariant_dbsnp:
             for item in self.myvariant_dbsnp['alleles']:
                 try:
@@ -105,7 +112,7 @@ class GenomeReport(models.Model):
     genome_file_url = models.TextField()
     genome_file_created = models.TextField()
     last_processed = models.DateTimeField(null=True)
-    report_type = models.CharField(max_length=80, blank=True)
+    report_source = models.CharField(max_length=80, blank=True)
     variants = models.ManyToManyField(Variant, through='GenomeVariant',
                                       through_fields=('genome', 'variant'))
 
@@ -115,6 +122,8 @@ class GenomeReport(models.Model):
         mv = myvariant.MyVariantInfo()
         mv_data = mv.getvariants(vars_by_hgvs.keys(), fields=['clinvar', 'dbsnp', 'exac'])
         for var_data in mv_data:
+            if '_id' not in [var_data]:
+                continue
             variant = vars_by_hgvs[var_data['_id']]
             try:
                 clinvar_data = var_data['clinvar']
@@ -147,11 +156,9 @@ class GenomeReport(models.Model):
         return True
 
     def refresh_oh_report_file_url(self, user_data=None):
-        if self.report_type.startswith('openhumans-'):
-            source = re.match(
-                r'openhumans-(.*)$', self.report_type).groups()[0]
+        if self.report_source.startswith('openhumans-'):
             new_url, created = self.user.openhumansuser.file_url_for_source(
-                source, user_data=user_data)
+                self.report_source, user_data=user_data)
             if new_url:
                 self.file_url = new_url
                 # Changed creation indicates a fresh file for processing.
@@ -163,7 +170,7 @@ class GenomeReport(models.Model):
     def refresh(self, oh_user_data=None, force=False):
         if self.new_clinvar_available() or force:
             # Refresh file URL for Open Humans data.
-            if self.report_type.startswith('openhumans-'):
+            if self.report_source.startswith('openhumans-'):
                 self.refresh_oh_report_file_url(user_data=oh_user_data)
             # Refresh object to ensure up-to-date file URL.
             report = GenomeReport.objects.get(pk=self.pk)
@@ -172,7 +179,8 @@ class GenomeReport(models.Model):
             from .tasks import produce_genome_report
             produce_genome_report.delay(report)
         else:
-            self.refresh_myvariant_data()
+            from .tasks import refresh_myvariant_data
+            refresh_myvariant_data.delay(self)
 
 
 class GenomeVariant(models.Model):
@@ -255,6 +263,7 @@ class OpenHumansUser(ConnectedUser):
     REDIRECT_URI = settings.OPENHUMANS_REDIRECT_URI
     OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
     USER_URL = BASE_URL + '/api/direct-sharing/project/exchange-member/'
+    SOURCES = ['pgp', 'twenty_three_and_me', 'vcf_data']
 
     def __unicode__(self):
         return self.openhumans_username
@@ -274,68 +283,102 @@ class OpenHumansUser(ConnectedUser):
         ohreports_by_source = {}
         reports = GenomeReport.objects.filter(user=self.user)
         for report in reports:
-            if report.report_type.startswith('openhumans-'):
-                source = re.match(
-                    r'openhumans-(.*)$', report.report_type).groups()[0]
-                ohreports_by_source[source] = report
+            if report.report_source.startswith('openhumans-'):
+                ohreports_by_source[report.report_source] = report
         return ohreports_by_source
 
     def file_url_for_source(self, source, user_data=None):
         if not user_data:
             user_data = self.get_user_data()
-        candidate_datafiles = []
         for datafile in user_data['data']:
-            if (datafile['source'] == source and
-                    'tags' in datafile['metadata'] and
-                    'vcf' in datafile['metadata']['tags']):
-                candidate_datafiles.append(datafile)
-        if len(candidate_datafiles) >= 1:
-            return (candidate_datafiles[0]['download_url'],
-                    candidate_datafiles[0]['created'])
+            datafile_source = 'openhumans-{}-{}'.format(
+                datafile['source'],
+                datafile['id'])
+            if datafile_source == source:
+                return (datafile['download_url'], datafile['created'])
         return None, None
+
+    def make_report_name(self, username, file_info):
+        SOURCE_TO_NAME = {
+            'pgp': 'Harvard PGP',
+            'twenty_three_and_me': '23andMe',
+            'dna_land': 'DNA.land',
+            'genes_for_good': "Genes For Good",
+            'veritas_genetics': 'Veritas Genetics',
+            'genos_exome': 'Genos',
+            'full_genomes_corp': 'Full Genomes Corp.',
+        }
+        source_slug = file_info['source']
+        if (file_info['source'] == 'vcf_data' and
+                'metadata' in file_info and
+                'vcf_source' in file_info['metadata']):
+            source_slug = file_info['metadata']['vcf_source']
+        if source_slug in SOURCE_TO_NAME:
+            source_name = SOURCE_TO_NAME[source_slug]
+        else:
+            source_name = source_slug
+        return "{}'s {} data (filename: \"{}\")".format(
+            username, source_name, file_info['basename'])
 
     def perform_genome_reports(self, request=None):
         """
         Refresh genome reports or produce new ones. Only one per source.
         """
         user_data = self.get_user_data()
-        # Sources removed: 'twenty_three_and_me', 'ancestry_dna',
-        sources = ['pgp', 'twenty_three_and_me']
-        source_names = {'twenty_three_and_me': '23andMe',
-                        #'ancestry_dna': 'AncestryDNA',
-                        'pgp': 'Harvard PGP'}
+
+        import json
+
         current_reports = self.get_current_ohreports_by_source()
 
+        oh_sources = dict()
+        for item in user_data['data']:
+            if not ('source' in item and
+                    'basename' in item and
+                    'metadata' in item and
+                    'tags' in item['metadata'] and
+                    'vcf' in item['metadata']['tags']):
+                continue
+            if item['source'] not in self.SOURCES:
+                continue
+            if not (item['basename'].endswith('.vcf') or
+                    item['basename'].endswith('.vcf.gz') or
+                    item['basename'].endswith('.vcf.bz2')):
+                continue
+            source = 'openhumans-{}-{}'.format(
+                item['source'],
+                item['id'])
+            oh_sources[source] = item
+
         # Refresh current reports
+        current_reports = self.get_current_ohreports_by_source()
         for source in current_reports:
-            if source in sources:
-                sources.remove(source)
-            current_reports[source].refresh(oh_user_data=user_data)
+            if source in oh_sources:
+                del(oh_sources[source])
+                current_reports[source].refresh(oh_user_data=user_data)
+            else:
+                current_reports[source].delete()
 
-        # Look for new onse to create, and start them.
-        for datafile in user_data['data']:
-            if (datafile['source'] in sources and
-                    'tags' in datafile['metadata'] and
-                    'vcf' in datafile['metadata']['tags']):
-                new_report = GenomeReport(
-                    genome_file_url=datafile['download_url'],
-                    user=self.user,
-                    report_name="Report for {}'s {} data".format(
-                        user_data['username'],
-                        source_names[datafile['source']]),
-                    report_type='openhumans-{}'.format(datafile['source']),
-                )
-                new_report.save()
+        # Look for new ones to create, and start them.
+        for source in oh_sources.keys():
+            datafile = oh_sources[source]
+            report_name = self.make_report_name(username=user_data['username'],
+                                                file_info=datafile)
+            new_report = GenomeReport(
+                genome_file_url=datafile['download_url'],
+                user=self.user,
+                report_name=report_name,
+                report_source=source,
+            )
+            new_report.save()
 
-                # Avoid circular import.
-                from .tasks import produce_genome_report
-                produce_genome_report.delay(new_report)
-                if request:
-                    messages.success(request, (
-                        '"{}" started processing! Please give reports up to '
-                        "fifteen minutes to complete.".format(
-                            new_report.report_name)))
-                sources.remove(datafile['source'])
+            # Avoid circular import.
+            from .tasks import produce_genome_report
+            produce_genome_report.delay(new_report)
+            if request:
+                messages.success(request, (
+                    '"{}" started processing! Please give reports up to '
+                    "fifteen minutes to complete.".format(
+                        new_report.report_name)))
 
 
 class GennotesEditor(ConnectedUser):

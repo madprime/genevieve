@@ -140,3 +140,8 @@ def produce_genome_report(genome_report, reprocess=False):
     genome_report.last_processed = django_timezone.now()
     genome_report.save()
     genome_report.refresh_myvariant_data()
+
+
+@shared_task
+def refresh_myvariant_data(report):
+    report.refresh_myvariant_data()

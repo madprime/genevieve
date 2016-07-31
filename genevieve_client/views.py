@@ -367,14 +367,14 @@ class PublicGenomeReportListView(TemplateView):
     @staticmethod
     def public_oh_username_sources():
         public_data = []
-        for source in ['pgp', 'twenty_three_and_me', 'ancestry_dna']:
+        for source in OpenHumansUser.SOURCES:
             params = {'source': source, 'limit': '1000'}
             url = OpenHumansUser.BASE_URL + '/api/public-data/'
             public_data += requests.get(url, params=params).json()['results']
         public_oh_username_sources = {}
         for item in public_data:
             username = item['user']['username']
-            source = 'openhumans-' + item['source']
+            source = 'openhumans-' + item['source'] + '-' + str(item['id'])
             if username not in public_oh_username_sources:
                 public_oh_username_sources[username] = []
             if source not in public_oh_username_sources[username]:
@@ -385,14 +385,14 @@ class PublicGenomeReportListView(TemplateView):
         context = super(PublicGenomeReportListView, self).get_context_data(
             **kwargs)
         oh_reports = GenomeReport.objects.filter(
-            report_type__startswith='openhumans-')
+            report_source__startswith='openhumans-')
         public_username_sources = self.public_oh_username_sources()
         public_reports = []
         for gr in oh_reports:
             oh_username = gr.user.openhumansuser.openhumans_username
             if oh_username not in public_username_sources:
                 continue
-            if gr.report_type in public_username_sources[oh_username]:
+            if gr.report_source in public_username_sources[oh_username]:
                 public_reports.append(gr)
         context['public_reports'] = public_reports
         return context
@@ -402,11 +402,11 @@ class GenomeReportDetailView(TemplateView):
     template_name = 'genevieve_client/genomereport_detail.html'
 
     def is_public(self):
-        report_type = self.genomereport.report_type
-        if not report_type.startswith('openhumans-'):
+        report_source = self.genomereport.report_source
+        if not report_source.startswith('openhumans-'):
             return False
         oh_username = self.genomereport.user.openhumansuser.openhumans_username
-        source = re.match(r'openhumans-(.*)$', report_type).groups()[0]
+        source = re.match(r'openhumans-([^-]*)-.*$', report_source).groups()[0]
         params = {'source': source, 'username': oh_username}
         public_data = requests.get(OpenHumansUser.BASE_URL + '/api/public-data/',
                                    params=params).json()['results']
