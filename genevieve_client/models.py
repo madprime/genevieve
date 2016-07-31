@@ -63,9 +63,11 @@ class Variant(models.Model):
         if self.myvariant_exac:
             ac = None
             if type(self.myvariant_exac['alleles']) == list:
-                if self.var_allele in self.myvariant_exac['alleles']:
+                try:
                     idx = self.myvariant_exac['alleles'].index(self.var_allele)
                     ac = self.myvariant_exac['ac']['ac'][idx]
+                except Exception:
+                    pass
             else:
                 ac = self.myvariant_exac['ac']['ac']
             if ac:
@@ -122,7 +124,12 @@ class GenomeReport(models.Model):
         mv = myvariant.MyVariantInfo()
         mv_data = mv.getvariants(vars_by_hgvs.keys(), fields=['clinvar', 'dbsnp', 'exac'])
         for var_data in mv_data:
-            if '_id' not in [var_data]:
+            if '_id' not in var_data:
+                variant = vars_by_hgvs[var_data['query']]
+                variant.myvariant_clinvar = {}
+                variant.myvariant_exac = {}
+                variant.myvariant_dbsnp = {}
+                variant.save()
                 continue
             variant = vars_by_hgvs[var_data['_id']]
             try:
