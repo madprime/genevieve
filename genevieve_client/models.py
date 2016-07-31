@@ -108,7 +108,7 @@ class Variant(models.Model):
 
 class GenomeReport(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    report_name = models.CharField(max_length=80)
+    report_name = models.CharField(max_length=120)
     genome_file_url = models.TextField()
     genome_file_created = models.TextField()
     last_processed = models.DateTimeField(null=True)
