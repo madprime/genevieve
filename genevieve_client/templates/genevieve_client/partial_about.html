@@ -1,4 +1,8 @@
+{% load staticfiles %}
 <h2>About Genevieve</h2>
+
+<img src="{% static 'images/genevieve_badge.png' %}"
+  style="float:right;max-width:300px;width:35%;padding-left:5%;">
 
 {% include 'genevieve_client/partial_about_intro.html' %}
 
