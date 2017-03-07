@@ -155,9 +155,19 @@ class GenomeReport(models.Model):
         cv_year, cv_month, cv_day = [int(x) for x in re.search(
             r'_(20[0-9][0-9])([01][0-9])([0-3][0-9])\.vcf',
             clinvar_update.latest_vcf_filename('b37')).groups()]
-        cv_latest = datetime.datetime(
-            cv_year, cv_month, cv_day + 1, 0, 0, 0,
-            tzinfo=pytz_timezone('US/Eastern'))
+        try:
+            cv_latest = datetime.datetime(
+                cv_year, cv_month, cv_day + 1, 0, 0, 0,
+                tzinfo=pytz_timezone('US/Eastern'))
+        except ValueError:
+            try:
+                cv_latest = datetime.datetime(
+                    cv_year, cv_month + 1, 1, 0, 0, 0,
+                    tzinfo=pytz_timezone('US/Eastern'))
+            except ValueError:
+                cv_latest = datetime.datetime(
+                    cv_year + 1, 1, 1, 0, 0, 0,
+                    tzinfo=pytz_timezone('US/Eastern'))
         if self.last_processed and self.last_processed > cv_latest:
             return False
         return True
