@@ -262,12 +262,13 @@ class OpenHumansUser(ConnectedUser):
     CLIENT_ID = settings.OPENHUMANS_CLIENT_ID
     CLIENT_SECRET = settings.OPENHUMANS_CLIENT_SECRET
     BASE_URL = settings.OPENHUMANS_URL
-    AUTH_URL = (
-        BASE_URL + '/direct-sharing/projects/oauth2/authorize/'
-        '?client_id={}&response_type=code'.format(CLIENT_ID))
     SIGNUP_URL = BASE_URL + '/account/signup/'
     TOKEN_URL = BASE_URL + '/oauth2/token/'
     REDIRECT_URI = settings.OPENHUMANS_REDIRECT_URI
+    AUTH_URL = (
+        BASE_URL + '/direct-sharing/projects/oauth2/authorize/'
+        '?client_id={}&response_type=code&redirect_uri={}'.format(
+            CLIENT_ID, REDIRECT_URI))
     OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
     USER_URL = BASE_URL + '/api/direct-sharing/project/exchange-member/'
     SOURCES = ['pgp', 'twenty_three_and_me', 'vcf_data']
@@ -354,7 +355,20 @@ class OpenHumansUser(ConnectedUser):
             source = 'openhumans-{}-{}'.format(
                 item['source'],
                 item['id'])
-            oh_sources[source] = item
+
+            # Addition: only create reports for public data.
+            params = {'source': item['source'],
+                      'username': self.openhumans_username}
+            public_data = requests.get(
+                OpenHumansUser.BASE_URL + '/api/public-data/',
+                params=params).json()['results']
+            if (public_data and
+                    public_data[0]['user']['username'] == self.openhumans_username and
+                    public_data[0]['source'] == item['source']):
+                oh_sources[source] = item
+
+            # Just run this without a test to allow private analyses.
+            # oh_sources[source] = item
 
         # Refresh current reports
         current_reports = self.get_current_ohreports_by_source()

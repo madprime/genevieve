@@ -116,10 +116,7 @@
                 </tr>
               </tbody>
             </table>
-            {% if request.user.gennoteseditor %}
-            <a href="{% url 'notes_edit' row_data.variant.id item.relation_id %}?report={{ genomereport.id }}"
-              class="btn btn-xs btn-default">Edit these notes</a>
-            {% endif %}
+            <a href="https://gennotes.herokuapp.com/genevieve-effect/{{ item.relation_id }}">View/edit on GenNotes</a>
           </div>
         </div>
       {% endfor %}
@@ -134,6 +131,11 @@
           </li>
           {% endfor %}
         </ul>
+        {% if not row_data.gennotes_data %}
+          <span class="pull-right">
+            <a href="https://gennotes.herokuapp.com/genevieve-edit/?build=b37&amp;chrom={{ row_data.variant.chromosome }}&amp;pos={{ row_data.variant.pos }}&amp;ref_allele={{ row_data.variant.ref_allele }}&amp;var_allele={{ row_data.variant.var_allele }}">Add effect notes to GenNotes</a>
+          </span>
+        {% endif %}
       {% endif %}
       <p>
         {% if request.user.gennoteseditor %}
