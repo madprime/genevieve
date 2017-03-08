@@ -54,15 +54,8 @@ class CompleteSignupView(TemplateView):
         terms_categories = ['education_and_research', 'contains_errors',
                             'incomplete', 'public', 'terms']
 
-        # SECRETCODE code.
-        secret_code = request.POST['secretcode']
-        if secret_code != settings.SECRETCODE:
-            messages.error(
-                request, 'Please give enter the secret code! '
-                'Genevieve is currently invite-only.')
-            return super(CompleteSignupView, self).get(request, **kwargs)
-        elif all([item in request.POST and request.POST[item] == 'on' for
-                  item in terms_categories]):
+        if all([item in request.POST and request.POST[item] == 'on' for
+                item in terms_categories]):
             gvuser = GenevieveUser.objects.get(user=request.user)
             gvuser.agreed_to_terms = True
             gvuser.save()
