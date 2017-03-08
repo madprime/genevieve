@@ -59,7 +59,7 @@
     </td>
     <td class="gv-freq-cell">
       {% if row_data.variant.myvariant_exac %}
-      <a href="http://exac.broadinstitute.org/variant/{{ variant.b37_exac_id }}">{{ row_data.variant.allele_frequency|floatformat:'-6' }}</a>
+      <a href="http://exac.broadinstitute.org/variant/{{ row_data.variant.b37_exac_id }}">{{ row_data.variant.allele_frequency|floatformat:'-6' }}</a>
       {% else %}
         {% if row_data.variant.allele_frequency %}
         {{ row_data.variant.allele_frequency|floatformat:'-6' }}
