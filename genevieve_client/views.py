@@ -115,12 +115,13 @@ class HomeView(TemplateView):
         if 'comprehensive' in post and post['comprehensive'] != 'no':
             messages.error(request, 'Sorry, Genevieve is NOT comprehensive.')
             passed = False
-        if 'private' in post and post['private'] != 'depends':
-            messages.error(
-                request, 'Sorry, Genevieve is NOT always private. If genetic '
-                'data is public on Open Humans, the Genevieve report will be '
-                'public.')
-            passed = False
+        # Comment out when running in public-only mode:
+        # if 'private' in post and post['private'] != 'depends':
+        #    messages.error(
+        #        request, 'Sorry, Genevieve is NOT always private. If genetic '
+        #        'data is public on Open Humans, the Genevieve report will be '
+        #        'public.')
+        #    passed = False
         if passed:
             gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
             gvuser.passed_quiz = True
@@ -417,7 +418,10 @@ class GenomeReportDetailView(TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.genomereport = GenomeReport.objects.get(pk=kwargs['pk'])
-        if request.user == self.genomereport.user or self.is_public():
+
+        # I've replaced the line below for "public only" mode:
+        # if request.user == self.genomereport.user or self.is_public():
+        if self.is_public():
             return super(GenomeReportDetailView, self).dispatch(
                 request, *args, **kwargs)
         return redirect('home')
