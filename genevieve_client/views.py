@@ -70,7 +70,8 @@ class CompleteSignupView(TemplateView):
                 'understand important aspects of Genevieve.')
             return super(CompleteSignupView, self).get(request, **kwargs)
         messages.success(
-            request, "Welcome to Genevieve! We'll work on a report now.")
+            request, "Welcome to Genevieve! We'll work on a report now. (It "
+            "make take several minutes, and you'll need to reload to check.)")
         return redirect('home')
 
 
