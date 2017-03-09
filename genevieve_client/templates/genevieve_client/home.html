@@ -75,6 +75,7 @@
 {% if user.is_authenticated and user.genevieveuser.agreed_to_terms %}
   <h2>Your genome reports</h2>
 
+  {% if genomereport_list %}
   <table class="table">
     <thead>
     <tr>
@@ -91,6 +92,18 @@
     {% endfor %}
   </tbody>
   </table>
+
+  {% else %}
+  <p>
+    Sorry! It seems like there are no qualifying data sets to generate reports.
+  </p>
+
+  <p>
+    Genevieve is currently available for public data in Open Humans from
+    the following activities: 23andMe, Harvard PGP, and Genome/Exome Data.
+  </p>
+  {% endif %}
+
 <hr>
 {% endif %}
 
