@@ -13,7 +13,7 @@ This limits its reusability, but the source of Genevieve is shared to enable
 alternate approaches.
 
 The underlying database Genevieve draws upon and edits is GenNotes:
-https://github.com/PersonalGenomesOrg/gennotes
+https://github.com/OpenHumans/gennotes
 
 Because GenNotes is decoupled from Genevieve, alternate versions of this
 project could be created that accept genetic data in a different manner (e.g.
