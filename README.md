@@ -13,7 +13,7 @@ This limits its reusability, but the source of Genevieve is shared to enable
 alternate approaches.
 
 The underlying database Genevieve draws upon and edits is GenNotes:
-https://github.com/OpenHumans/gennotes
+https://github.com/madprime/gennotes
 
 Because GenNotes is decoupled from Genevieve, alternate versions of this
 project could be created that accept genetic data in a different manner (e.g.
@@ -52,7 +52,7 @@ an alternate version of this app.
 ### Clone repository and set up .env
 
 * **Clone the repository**
-  * `git clone https://github.com/PersonalGenomesOrg/genevieve`
+  * `git clone https://github.com/madprime/genevieve`
 * **Copy `env.example` to `.env`** (note the leading dot!)
   * Set your `SECRET_KEY` with a random string.
   * Set up email. The easiest for development purposes is probably: `EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"`
