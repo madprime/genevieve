@@ -93,7 +93,9 @@ class HomeView(TemplateView):
     def post(self, request, **kwargs):
         post = request.POST
         passed = True
-        for item in ['intended_use', 'comprehensive', 'accurate', 'private']:
+        # Edited for running in public-only mode.
+        # for item in ['intended_use', 'comprehensive', 'accurate', 'private']:
+        for item in ['intended_use', 'comprehensive', 'accurate']:
             if item not in post:
                 messages.error(request, 'Please answer all quiz questions.')
                 passed = False
