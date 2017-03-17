@@ -30,6 +30,9 @@ urlpatterns = [
     url(r'about_notes/$',
         HomeView.as_view(template_name='genevieve_client/about_notes.html'),
         name='about_notes'),
+    url(r'terms/$',
+        HomeView.as_view(template_name='genevieve_client/terms.html'),
+        name='terms'),
 
     url(r'public_reports/$',
         PublicGenomeReportListView.as_view(),
