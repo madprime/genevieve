@@ -51,7 +51,7 @@ class CompleteSignupView(TemplateView):
     template_name = 'genevieve_client/complete_signup.html'
 
     def post(self, request, **kwargs):
-        terms_categories = ['education_and_research', 'contains_errors',
+        terms_categories = ['education_and_exploration', 'contains_errors',
                             'incomplete', 'public', 'terms']
 
         if all([item in request.POST and request.POST[item] == 'on' for
