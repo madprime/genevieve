@@ -6,9 +6,9 @@
 <h2>About Genevieve's Notes</h2>
 
 <p class="lead">
-  Genevieve also allows users to create or edit shared notes, to augment
-  ClinVar data. These notes are stored in the GenNotes server, and are
-  public domain.
+  Genevieve also invites users to create or edit shared notes, to augment
+  ClinVar data. These notes are edited and stored in the GenNotes server, and
+  are public domain.
 </p>
 
 <ol class="lead">
@@ -147,42 +147,21 @@
 
 <h3 id="howadd">How to add and edit notes</h3>
 
-<p>You need a connected GenNotes account to create or edit notes.</p>
+<p>To edit notes on GenNotes:</p>
 
-<p>
-  Notes you create or edit will be edits submitted on your behalf. All notes
-  are public domain. Also, although it's not currently visible in Genevieve,
-  the GenNotes username associated with an edit will be considered publicly
-  shareable information.
-</p>
-
-{% if request.user.gennoteseditor %}
-<div class="well well-sm">
-  <b>Account connected.</b>
-  This account is connected to the GenNotes account for
-      "{{ request.user.gennoteseditor.gennotes_username }}".
-</div>
-
-{% else %}
-<p>
-  To create a connected GenNotes account...
-</p>
-
-<ol style="margin-bottom:20px;">
+<ol>
   <li><a href="{{ gennotes_signup_url }}">Create a GenNotes account</a>.</li>
-  <li>Verify the email for that account.</li>
-  <li>
-    If you already have an Open Humans account, make sure you're already
-    logged in to it.
-  </li>
-  <li>
-    Click the button below to connect and authorize note submission.
-    You'll be returned to the Genevieve home page after connecting.<br>
-    <a class="btn btn-default btn-xs" href="{{ gennotes_auth_url }}">
-      Connect your GenNotes account</a></li>
-  </li>
+  <li>Go to a genome report.</li>
+  <li>Click "Add effect notes to GenNotes" (if a variant doesn't already have a
+    note), or "View/edit on GenNotes" (if it does).</li>
 </ol>
-{% endif %}
+
+<p>
+  After a note is created or edited in GenNotes, you can reload a Genevieve
+  report to see the updated information. You can also find more information
+  within GenNotes, including the username associated with an edit, and historic
+  versions of a note (like a wiki).
+</p>
 
 <h4>Note-taking tips</h4>
 
