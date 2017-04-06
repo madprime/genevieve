@@ -189,11 +189,15 @@ class GenomeReport(models.Model):
             # Refresh file URL for Open Humans data.
             if self.report_source.startswith('openhumans-'):
                 self.refresh_oh_report_file_url(user_data=oh_user_data)
+
             # Refresh object to ensure up-to-date file URL.
             report = GenomeReport.objects.get(pk=self.pk)
 
             # Avoid circular import.
             from .tasks import produce_genome_report
+
+            # Delete old variants and create a new list.
+            report.genomevariant_set.all().delete()
             produce_genome_report.delay(report)
         else:
             from .tasks import refresh_myvariant_data

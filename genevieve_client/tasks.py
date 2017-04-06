@@ -3,8 +3,8 @@
 # and the celery package.
 from __future__ import absolute_import
 import bz2
-from ftplib import FTP
 import gzip
+import json
 import os
 import re
 try:
@@ -16,11 +16,14 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone as django_timezone
 import requests
-import vcf2clinvar
 from vcf2clinvar import clinvar_update
 from vcf2clinvar.common import CHROM_INDEX, REV_CHROM_INDEX
+from vcf2clinvar.clinvar import ClinVarVCFLine
+from vcf2clinvar.genome import GenomeVCFLine
 
 from .models import Variant, GenomeVariant, CHROMOSOMES
+
+CHROM_MAP = {'chr' + v: k for k, v in CHROMOSOMES.items()}
 
 
 def get_remote_file(url, tempdir):
@@ -47,27 +50,7 @@ def get_remote_file(url, tempdir):
     return orig_filename
 
 
-def setup_clinvar_file():
-    local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
-                                 'genome_processing_files')
-    if not os.path.exists(local_storage):
-        os.makedirs(local_storage)
-    clinvar_filepath = clinvar_update.get_latest_vcf_file(
-        target_dir=local_storage, build='b37')
-    if clinvar_filepath.endswith('.bz2'):
-        clinvar_file = bz2.BZ2File(clinvar_filepath, 'rb')
-    elif clinvar_filepath.endswith('.gz'):
-        clinvar_file = gzip.open(clinvar_filepath, 'rb')
-    else:
-        clinvar_file = open(clinvar_filepath)
-    return clinvar_file
-
-
-@shared_task
-def produce_genome_report(genome_report, reprocess=False):
-    # Try to locally store and reuse the genome file.
-    # Retrieve again if not available (e.g. due to ephemeral file storage).
-    print("Producing genome report for report ID: {}".format(genome_report.id))
+def open_genome_file(genome_report):
     local_file_dir = os.path.join(
         settings.LOCAL_STORAGE_ROOT,
         'local_genome_files',
@@ -86,56 +69,140 @@ def produce_genome_report(genome_report, reprocess=False):
         genome_in = gzip.open(genome_filepath, 'rb')
     else:
         genome_in = open(genome_filepath)
+    return genome_in
 
-    clinvar_file = setup_clinvar_file()
-    clinvar_matches = vcf2clinvar.match_to_clinvar(genome_file=genome_in,
-                                                   clin_file=clinvar_file)
-    chrom_map = {'chr' + v: k for k, v in CHROMOSOMES.items()}
 
-    # Delete old GenomeVariants only after we've successfully started a new
-    # set of matches.
-    for genomevar in genome_report.genomevariant_set.all():
-        genomevar.delete()
+def _next_line(filebuffer):
+    try:
+        next_line = filebuffer.readline()
+    except AttributeError:
+        next_line = filebuffer.next()
+    try:
+        next_line = next_line.decode('utf-8')
+        return next_line
+    except AttributeError:
+        return next_line
 
-    for genome_vcf_line, allele, zygosity in clinvar_matches:
-        chrom = chrom_map[
-            REV_CHROM_INDEX[CHROM_INDEX[genome_vcf_line.chrom]]]
-        pos = genome_vcf_line.start
-        ref_allele = genome_vcf_line.ref_allele
-        var_allele = allele.sequence
 
-        # Only record if has significance that isn't "uncertain",
-        # "not provided", "benign", "likely benign", or "other".
-        # (i.e. it "does something".)
-        sigs = [r.sig for r in allele.records if
-                r.sig != '0' and r.sig != '1' and r.sig != '2' and
-                r.sig != '3' and r.sig != '255']
-        if not sigs:
-            continue
+def generate_clinvar_sig(clinvar_filepath, clinvar_sig_filepath):
+    if clinvar_filepath.endswith('.bz2'):
+        clinvar_file = bz2.BZ2File(clinvar_filepath, 'rt')
+    elif clinvar_filepath.endswith('.gz'):
+        clinvar_file = gzip.open(clinvar_filepath, 'rt')
+    else:
+        clinvar_file = open(clinvar_filepath)
+    clinvar_sig = list()
 
-        # Only record if a report with a disease name exists.
-        dbns = [r.dbn for r in allele.records if r.dbn != 'not_provided']
-        if not dbns:
-            continue
+    clin_curr_line = _next_line(clinvar_file)
+    while clin_curr_line.startswith('#'):
+        clin_curr_line = _next_line(clinvar_file)
+    while clin_curr_line:
+        clinvar_vcf_line = ClinVarVCFLine(vcf_line=clin_curr_line)
+        for allele in clinvar_vcf_line.alleles:
+            if hasattr(allele, 'records'):
+                sigs = [
+                    r.sig for r in allele.records if
+                    r.sig != '0' and r.sig != '1' and r.sig != '2' and
+                    r.sig != '3' and r.sig != '255']
+                dbns = [r.dbn for r in allele.records if r.dbn != 'not_provided']
+                if sigs and dbns:
+                    varstring = '{}-{}-{}-{}'.format(
+                        clinvar_vcf_line.chrom,
+                        clinvar_vcf_line.start,
+                        clinvar_vcf_line.ref_allele,
+                        allele.sequence)
+                    clinvar_sig.append(varstring)
+        clin_curr_line = _next_line(clinvar_file)
 
-        try:
-            variant = Variant.objects.get(chromosome=chrom,
-                                          pos=pos,
-                                          ref_allele=ref_allele,
-                                          var_allele=var_allele)
-        except Variant.DoesNotExist:
-            variant = Variant(chromosome=chrom,
-                              pos=pos,
-                              ref_allele=ref_allele,
-                              var_allele=var_allele,
-                              myvariant_clinvar={},
-                              myvariant_exac={})
-            variant.save()
+    assert clinvar_sig_filepath.endswith('.json.gz')
+    with gzip.open(clinvar_sig_filepath, 'wt') as f:
+        json.dump(clinvar_sig, f)
+    return clinvar_sig
 
-        genome_variant, _ = GenomeVariant.objects.get_or_create(
-            genome=genome_report,
-            variant=variant,
-            zygosity=zygosity)
+
+def setup_clinvar_data():
+    local_storage = os.path.join(settings.LOCAL_STORAGE_ROOT,
+                                 'genome_processing_files')
+    if not os.path.exists(local_storage):
+        os.makedirs(local_storage)
+    clinvar_filepath = clinvar_update.get_latest_vcf_file(
+        target_dir=local_storage, build='b37')
+    clinvar_sig_filepath = '{}.sigposlist.json.gz'.format(clinvar_filepath)
+    if os.path.exists(clinvar_sig_filepath):
+        clinvar_sig_file = gzip.open(clinvar_sig_filepath, 'rt')
+        clinvar_sig = json.load(clinvar_sig_file)
+    else:
+        clinvar_sig = generate_clinvar_sig(
+            clinvar_filepath, clinvar_sig_filepath)
+    return set(clinvar_sig)
+
+
+def get_zyg(genome_vcf_line):
+    genotype_allele_indexes = genome_vcf_line.genotype_allele_indexes
+    genome_alleles = [genome_vcf_line.alleles[x] for
+                      x in genotype_allele_indexes]
+    if len(genome_alleles) == 1:
+        return 'Hem'
+    elif len(genome_alleles) == 2:
+        if genome_alleles[0].sequence == genome_alleles[1].sequence:
+            return 'Hom'
+            genome_alleles = [genome_alleles[0]]
+        else:
+            return 'Het'
+
+
+@shared_task
+def produce_genome_report(genome_report, reprocess=False):
+    # Try to locally store and reuse the genome file.
+    # Retrieve again if not available (e.g. due to ephemeral file storage).
+    print("Producing genome report for report ID: {}".format(genome_report.id))
+    genome_in = open_genome_file(genome_report)
+    clinvar_sig = setup_clinvar_data()
+
+    genome_curr_line = _next_line(genome_in)
+
+    # Skip header.
+    while genome_curr_line.startswith('#'):
+        genome_curr_line = _next_line(genome_in)
+
+    while genome_curr_line:
+        entries = genome_curr_line.split('\t')
+        var_alleles = entries[4].split(',')
+        for var_allele in var_alleles:
+            pos = entries[1]
+            chrom = CHROM_MAP[
+                REV_CHROM_INDEX[CHROM_INDEX[entries[0]]]]
+            ref_allele = entries[3]
+
+            varstring = '{}-{}-{}-{}'.format(chrom, pos, ref_allele, var_allele)
+            if varstring not in clinvar_sig:
+                continue
+
+            genome_vcf_line = GenomeVCFLine(vcf_line=genome_curr_line,
+                                            skip_info=True)
+
+            # If it appears to be significant, store this as a GenomeVariant.
+            zygosity = get_zyg(genome_vcf_line)
+            try:
+                variant = Variant.objects.get(chromosome=chrom,
+                                              pos=pos,
+                                              ref_allele=ref_allele,
+                                              var_allele=var_allele)
+            except Variant.DoesNotExist:
+                variant = Variant(chromosome=chrom,
+                                  pos=pos,
+                                  ref_allele=ref_allele,
+                                  var_allele=var_allele,
+                                  myvariant_clinvar={},
+                                  myvariant_exac={})
+                variant.save()
+
+            genome_variant, _ = GenomeVariant.objects.get_or_create(
+                genome=genome_report,
+                variant=variant,
+                zygosity=zygosity)
+
+        genome_curr_line = _next_line(genome_in)
 
     genome_report.last_processed = django_timezone.now()
     genome_report.save()

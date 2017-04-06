@@ -523,8 +523,10 @@ class GenomeReportReprocessView(DetailView):
 
     def post(self, request, *args, **kwargs):
         genome_report = self.get_object()
-        produce_genome_report.delay(
-            genome_report=GenomeReport.objects.get(pk=genome_report.id))
+
+        # Delete old variants and create a new list.
+        genome_report = GenomeReport.objects.get(pk=genome_report.id)
+        genome_report.refresh(force=True)
         messages.success(request,
                          'Reprocessing initiated for "{}".'.format(
                              genome_report.report_name))
