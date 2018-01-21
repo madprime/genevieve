@@ -15,7 +15,7 @@ html5lib==0.9999999
 kombu==3.0.35
 myvariant==0.2.0
 oauthlib==1.1.2
-psycopg2==2.6.1
+psycopg2==2.7.3.2
 python3-openid==3.0.10
 pytz==2016.4
 requests==2.10.0
