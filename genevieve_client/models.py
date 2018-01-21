@@ -53,6 +53,7 @@ class Variant(models.Model):
     myvariant_clinvar = JSONField(default={})
     myvariant_exac = JSONField(default={})
     myvariant_dbsnp = JSONField(default={})
+    myvariant_gnomad_genome = JSONField(default={})
     myvariant_last_update = models.DateTimeField(null=True)
 
     def __unicode__(self):
@@ -60,7 +61,9 @@ class Variant(models.Model):
 
     @property
     def allele_frequency(self):
-        if self.myvariant_exac:
+        if self.myvariant_gnomad_genome:
+            return float(self.myvariant_gnomad_genome['af']['af'])
+        elif self.myvariant_exac:
             ac = None
             if type(self.myvariant_exac['alleles']) == list:
                 try:
@@ -79,7 +82,7 @@ class Variant(models.Model):
                     if item['allele'] == self.var_allele:
                         return item['freq']
                 except KeyError:
-                    pass
+                    continue
         return None
 
     @property
@@ -122,7 +125,8 @@ class GenomeReport(models.Model):
         vars_by_hgvs = {
             v.b37_hgvs_id: v for v in self.variants.all()}
         mv = myvariant.MyVariantInfo()
-        mv_data = mv.getvariants(vars_by_hgvs.keys(), fields=['clinvar', 'dbsnp', 'exac'])
+        mv_data = mv.getvariants(vars_by_hgvs.keys(), fields=[
+            'clinvar', 'dbsnp', 'exac', 'gnomad_genome'])
         for var_data in mv_data:
             if '_id' not in var_data:
                 variant = vars_by_hgvs[var_data['query']]
@@ -148,6 +152,10 @@ class GenomeReport(models.Model):
                 variant.myvariant_dbsnp = var_data['dbsnp']
             except KeyError:
                 variant.myvariant_dbsnp = {}
+            try:
+                variant.myvariant_gnomad_genome = var_data['gnomad_genome']
+            except KeyError:
+                variant.myvariant_gnomad_genome = {}
             variant.myvariant_last_update = django_timezone.now()
             variant.save()
 

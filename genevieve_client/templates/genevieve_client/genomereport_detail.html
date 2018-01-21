@@ -58,7 +58,9 @@
       <p>{{ row_data.genome_variant.get_zygosity_display }}</p>
     </td>
     <td class="gv-freq-cell">
-      {% if row_data.variant.myvariant_exac %}
+      {% if row_data.variant.myvariant_gnomad_genome %}
+      <a href="http://gnomad.broadinstitute.org/variant/{{ row_data.variant.b37_exac_id }}">{{ row_data.variant.allele_frequency|floatformat:'-6' }}</a>
+      {% elif row_data.variant.myvariant_exac %}
       <a href="http://exac.broadinstitute.org/variant/{{ row_data.variant.b37_exac_id }}">{{ row_data.variant.allele_frequency|floatformat:'-6' }}</a>
       {% else %}
         {% if row_data.variant.allele_frequency %}

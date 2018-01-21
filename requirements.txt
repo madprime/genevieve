@@ -22,5 +22,5 @@ requests==2.10.0
 requests-oauthlib==0.6.1
 six==1.10.0
 tini==3.0.1
-vcf2clinvar==0.1.4.2
+vcf2clinvar==0.1.5.0
 whitenoise==3.2

@@ -85,6 +85,7 @@ def _next_line(filebuffer):
 
 
 def generate_clinvar_sig(clinvar_filepath, clinvar_sig_filepath):
+    print("Generating new ClinVar 'significant variants' list...")
     if clinvar_filepath.endswith('.bz2'):
         clinvar_file = bz2.BZ2File(clinvar_filepath, 'rt')
     elif clinvar_filepath.endswith('.gz'):
@@ -93,25 +94,35 @@ def generate_clinvar_sig(clinvar_filepath, clinvar_sig_filepath):
         clinvar_file = open(clinvar_filepath)
     clinvar_sig = list()
 
+    i = 0
     clin_curr_line = _next_line(clinvar_file)
     while clin_curr_line.startswith('#'):
         clin_curr_line = _next_line(clinvar_file)
     while clin_curr_line:
+        i += 1
+        if i % 10000 == 0:
+            print("{} ClinVar lines processed...".format(i))
         clinvar_vcf_line = ClinVarVCFLine(vcf_line=clin_curr_line)
         for allele in clinvar_vcf_line.alleles:
-            if hasattr(allele, 'records'):
-                sigs = [
-                    r.sig for r in allele.records if
-                    r.sig != '0' and r.sig != '1' and r.sig != '2' and
-                    r.sig != '3' and r.sig != '255']
-                dbns = [r.dbn for r in allele.records if r.dbn != 'not_provided']
-                if sigs and dbns:
-                    varstring = '{}-{}-{}-{}'.format(
-                        clinvar_vcf_line.chrom,
-                        clinvar_vcf_line.start,
-                        clinvar_vcf_line.ref_allele,
-                        allele.sequence)
-                    clinvar_sig.append(varstring)
+            ignore_sigs = ['unknown', 'untested', 'non-pathogenic',
+                           'not_provided', 'probably non-pathogenic', 'other',
+                           'benign', 'benign/likely_benign', 'likely_benign']
+            if allele.clnsig.lower() in ignore_sigs:
+                continue
+            if allele.clnsig.lower() == 'uncertain_significance':
+                meaningful_diseases = [
+                    x for x in allele.clndn if x.lower() not in
+                    ['not_specified']
+                ]
+                if not meaningful_diseases:
+                    continue
+            varstring = '{}-{}-{}-{}'.format(
+                clinvar_vcf_line.chrom,
+                clinvar_vcf_line.start,
+                clinvar_vcf_line.ref_allele,
+                allele.sequence)
+            clinvar_sig.append(varstring)
+
         clin_curr_line = _next_line(clinvar_file)
 
     assert clinvar_sig_filepath.endswith('.json.gz')
@@ -168,13 +179,21 @@ def produce_genome_report(genome_report, reprocess=False):
     while genome_curr_line:
         entries = genome_curr_line.split('\t')
         var_alleles = entries[4].split(',')
-        for var_allele in var_alleles:
+        alleles = [entries[3]] + var_alleles
+        genotypes_idx = entries[8].split(':').index('GT')
+        genotypes = set(re.split('[|/]', entries[9].split(':')[genotypes_idx]))
+        for genotype in genotypes:
+            try:
+                var_allele = alleles[int(genotype)]
+            except ValueError:
+                continue
             pos = entries[1]
             chrom = CHROM_MAP[
                 REV_CHROM_INDEX[CHROM_INDEX[entries[0]]]]
             ref_allele = entries[3]
 
-            varstring = '{}-{}-{}-{}'.format(chrom, pos, ref_allele, var_allele)
+            varstring = '{}-{}-{}-{}'.format(
+                chrom, pos, ref_allele, var_allele)
             if varstring not in clinvar_sig:
                 continue
 
