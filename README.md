@@ -20,7 +20,7 @@ project could be created that accept genetic data in a different manner (e.g.
 via direct upload) and retrieve variant information from the same GenNotes
 database.
 
-Please check with Madeleine Ball before using the term "Genevieve" to describe
+Please check with Mad Ball before using the term "Genevieve" to describe
 an alternate version of this app.
 
 ## Local installation/development set-up

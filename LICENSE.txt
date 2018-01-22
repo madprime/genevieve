@@ -1,6 +1,6 @@
 MIT License (Expat)
 
-Copyright (c) 2016-2017 Madeleine Ball
+Copyright (c) 2016-2018 Mad Price Ball
 Copyright (c) 2016-2017 Benjamin Carr
 Copyright (c) 2015 PersonalGenomes.org
 
