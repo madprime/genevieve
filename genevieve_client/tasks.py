@@ -177,7 +177,7 @@ def produce_genome_report(genome_report, reprocess=False):
         genome_curr_line = _next_line(genome_in)
 
     while genome_curr_line:
-        entries = genome_curr_line.split('\t')
+        entries = genome_curr_line.rstrip().split('\t')
         var_alleles = entries[4].split(',')
         alleles = [entries[3]] + var_alleles
         genotypes_idx = entries[8].split(':').index('GT')
@@ -213,7 +213,8 @@ def produce_genome_report(genome_report, reprocess=False):
                                   ref_allele=ref_allele,
                                   var_allele=var_allele,
                                   myvariant_clinvar={},
-                                  myvariant_exac={})
+                                  myvariant_exac={},
+                                  myvariant_gnomad_genome={})
                 variant.save()
 
             genome_variant, _ = GenomeVariant.objects.get_or_create(
