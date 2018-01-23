@@ -185,7 +185,7 @@ class GenomeReport(models.Model):
             new_url, created = self.user.openhumansuser.file_url_for_source(
                 self.report_source, user_data=user_data)
             if new_url:
-                self.file_url = new_url
+                self.genome_file_url = new_url
                 # Changed creation indicates a fresh file for processing.
                 if created != self.genome_file_created:
                     self.genome_file_created = created

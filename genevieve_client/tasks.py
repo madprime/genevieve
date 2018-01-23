@@ -60,6 +60,7 @@ def open_genome_file(genome_report):
     if len(os.listdir(local_file_dir)) == 1:
         genome_filename = os.listdir(local_file_dir)[0]
     else:
+        genome_report.refresh_oh_report_file_url()
         genome_filename = get_remote_file(
             genome_report.genome_file_url, local_file_dir)
     genome_filepath = os.path.join(local_file_dir, genome_filename)
