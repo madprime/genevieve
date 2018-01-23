@@ -378,19 +378,7 @@ class OpenHumansUser(ConnectedUser):
                 item['source'],
                 item['id'])
 
-            # Addition: only create reports for public data.
-            params = {'source': item['source'],
-                      'username': self.openhumans_username}
-            public_data = requests.get(
-                OpenHumansUser.BASE_URL + '/api/public-data/',
-                params=params).json()['results']
-            if (public_data and
-                    public_data[0]['user']['username'] == self.openhumans_username and
-                    public_data[0]['source'] == item['source']):
-                oh_sources[source] = item
-
-            # Just run this without a test to allow private analyses.
-            # oh_sources[source] = item
+            oh_sources[source] = item
 
         # Refresh current reports
         current_reports = self.get_current_ohreports_by_source()

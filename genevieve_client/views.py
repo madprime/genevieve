@@ -47,34 +47,6 @@ def make_unique_username(base):
                 return name
 
 
-class CompleteSignupView(TemplateView):
-    template_name = 'genevieve_client/complete_signup.html'
-
-    def post(self, request, **kwargs):
-        terms_categories = ['education_and_exploration', 'contains_errors',
-                            'incomplete', 'public', 'terms']
-
-        if all([item in request.POST and request.POST[item] == 'on' for
-                item in terms_categories]):
-            gvuser = GenevieveUser.objects.get(user=request.user)
-            gvuser.agreed_to_terms = True
-            gvuser.save()
-            try:
-                ohuser = OpenHumansUser.objects.get(user=request.user)
-                ohuser.perform_genome_reports(request=request)
-            except OpenHumansUser.DoesNotExist:
-                pass
-        else:
-            messages.error(
-                request, 'Please agree to our terms of use and indicate you '
-                'understand important aspects of Genevieve.')
-            return super(CompleteSignupView, self).get(request, **kwargs)
-        messages.success(
-            request, "Welcome to Genevieve! We'll work on a report now. (It "
-            "make take several minutes, and you'll need to reload to check.)")
-        return redirect('home')
-
-
 class HomeView(TemplateView):
     template_name = 'genevieve_client/home.html'
 
@@ -96,7 +68,8 @@ class HomeView(TemplateView):
         passed = True
         # Edited for running in public-only mode.
         # for item in ['intended_use', 'comprehensive', 'accurate', 'private']:
-        for item in ['intended_use', 'comprehensive', 'accurate']:
+        for item in ['intended_use', 'comprehensive',
+                     'accurate', 'private', 'terms']:
             if item not in post:
                 messages.error(request, 'Please answer all quiz questions.')
                 passed = False
@@ -111,18 +84,31 @@ class HomeView(TemplateView):
         if 'comprehensive' in post and post['comprehensive'] != 'no':
             messages.error(request, 'Sorry, Genevieve is NOT comprehensive.')
             passed = False
-        # Comment out when running in public-only mode:
-        # if 'private' in post and post['private'] != 'depends':
-        #    messages.error(
-        #        request, 'Sorry, Genevieve is NOT always private. If genetic '
-        #        'data is public on Open Humans, the Genevieve report will be '
-        #        'public.')
-        #    passed = False
+        if 'private' in post and post['private'] != 'depends':
+            messages.error(
+                request, 'Sorry, Genevieve is NOT always private. If genetic '
+                'data is public on Open Humans, the Genevieve report will be '
+                'public.')
+            passed = False
+        if 'terms' in post and post['terms'] != 'on':
+            messages.error(
+                request, 'Please agree to our terms of use and indicate you '
+                'understand important aspects of Genevieve.')
+            passed = False
+
         if passed:
             gvuser, _ = GenevieveUser.objects.get_or_create(user=request.user)
             gvuser.passed_quiz = True
+            gvuser.agreed_to_terms = True
             gvuser.save()
-            return redirect('complete_signup')
+
+            try:
+                ohuser = OpenHumansUser.objects.get(user=request.user)
+                ohuser.perform_genome_reports(request=request)
+            except OpenHumansUser.DoesNotExist:
+                pass
+
+            return redirect('home')
         else:
             return super(HomeView, self).get(request, **kwargs)
 
@@ -415,9 +401,7 @@ class GenomeReportDetailView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         self.genomereport = GenomeReport.objects.get(pk=kwargs['pk'])
 
-        # I've replaced the line below for "public only" mode:
-        # if request.user == self.genomereport.user or self.is_public():
-        if self.is_public():
+        if request.user == self.genomereport.user or self.is_public():
             return super(GenomeReportDetailView, self).dispatch(
                 request, *args, **kwargs)
         return redirect('home')

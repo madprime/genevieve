@@ -7,7 +7,7 @@
 {% if user.is_authenticated and not user.genevieveuser.agreed_to_terms %}
 <h2>Please read and agree to the following.</h2>
 <p>
-  Before we create any reports, we need to make sure you understand
+  Before Genevieve creates reports, I need to make sure you understand
   what Genevieve is &ndash; and isn't.
 </p>
 
@@ -21,7 +21,7 @@
 
 <hr>
 <p>
-  <b>Please show us you understand by answering the following questions.</b>
+  <b>Please show you understand by answering the following questions.</b>
 </p>
 <p>
   <form action="{% url 'home' %}" method="post">
@@ -54,7 +54,6 @@
       </div>
     </p>
 
-    <!-- Comment out while deployed in public-only mode.
     <p>
       <h4>Will your Genevieve report always be private?</h4>
       <div class="radio">
@@ -64,7 +63,15 @@
         <label><input type="radio" name="private" value="depends">Only if my genetic data is private in Open Humans. If my genetic data is public on Open Humans, my Genevieve report will also be publicly shared.</label>
       </div>
     </p>
-    -->
+
+    <hr>
+    <div class="checkbox" style="margin-bottom:15px;">
+      <label>
+        <input type="checkbox" name="terms">
+        I agree to the Genevieve
+        <a href="{% url 'terms' %}">terms of use</a.
+      </label>
+    </div>
 
     <button type="submit" class="btn btn-primary" style="margin-bottom:15px;">
       Continue</button>
@@ -99,7 +106,7 @@
   </p>
 
   <p>
-    Genevieve is currently available for public data in Open Humans from
+    Genevieve is only available for data in Open Humans from
     the following activities: 23andMe, Harvard PGP, and Genome/Exome Data.
   </p>
   {% endif %}
@@ -164,8 +171,9 @@
 <h3>Can I contribute notes without connecting Open Humans?</h3>
 <p>
   Even if you aren't interested in generating a report from your own genetic
-  data, we hope you consider connecting via Open Humans. As an Open Humans
-  member, you'll also be able to log in to our forums to discuss editing notes.
+  data, I hope you consider connecting via Open Humans. It's a fun community,
+  and you're also welcome to join <a href="http://slackin.openhumans.org/">our
+  community Slack</a> to chat!
 </p>
 <p>
   But if joining as an Open Humans member isn't an option, you can log in
