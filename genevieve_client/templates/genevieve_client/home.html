@@ -112,6 +112,15 @@
   {% endif %}
 
 <hr>
+<div class="alert alert-warning" role="alert">
+  <p>
+    <b>Have you updated data in Open Humans?</b>
+    When you update data in Open Humans, you need to go to
+    <a href="{% url 'manage_account' %}">your Genevieve account management
+    page</a> and trigger data refresh &amp; reprocessing if you want to
+    see updated reports.
+  </p>
+</div>
 {% endif %}
 
 {% if user.is_authenticated and not user.openhumansuser and user.gennoteseditor and user.genevieveuser.agreed_to_terms%}

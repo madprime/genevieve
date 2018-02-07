@@ -116,6 +116,10 @@ class HomeView(TemplateView):
 class DeleteAccountView(TemplateView):
     template_name = 'genevieve_client/delete_account.html'
 
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(DeleteAccountView, self).dispatch(*args, **kwargs)
+
     def post(self, request, **kwargs):
         user = request.user
         logout(request)
@@ -127,6 +131,10 @@ class DeleteAccountView(TemplateView):
 
 class ManageAccountView(TemplateView):
     template_name = 'genevieve_client/manage_account.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(ManageAccountView, self).dispatch(*args, **kwargs)
 
     def post(self, request, **kwargs):
         request.user.openhumansuser.perform_genome_reports()
@@ -504,6 +512,10 @@ class GenomeReportDetailView(TemplateView):
 class GenomeReportReprocessView(DetailView):
     model = GenomeReport
     template_name = 'genevieve_client/genomereport_reprocess.html'
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(GenomeReportReprocessView, self).dispatch(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         genome_report = self.get_object()
