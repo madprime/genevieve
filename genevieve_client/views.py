@@ -465,10 +465,17 @@ class GenomeReportDetailView(TemplateView):
             row_data = {}
             if not variant.myvariant_clinvar:
                 continue
-            rcvs = {rcv['accession']: rcv for rcv in
-                    variant.myvariant_clinvar['rcv']
-                    if not (rcv['clinical_significance'] == 'not provided' and
-                    rcv['conditions']['name'] == 'not specified')}
+            rcvs = {}
+            for rcv in variant.myvariant_clinvar['rcv']:
+                try:
+                    for condition in rcv['conditions']:
+                        if not (rcv['clinical_significance'] == 'not provided'
+                                and condition['name'] == 'not specified'):
+                            rcvs[rcv['accession']] = rcv
+                except TypeError:
+                    if not (rcv['clinical_significance'] == 'not provided'
+                            and rcv['conditions']['name'] == 'not specified'):
+                        rcvs[rcv['accession']] = rcv
             if not rcvs:
                 continue
             unclaimed_rcvs = rcvs.copy()
