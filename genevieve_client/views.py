@@ -1,5 +1,6 @@
 import datetime
 import json
+from random import shuffle
 import re
 import requests
 
@@ -356,35 +357,24 @@ class PublicGenomeReportListView(TemplateView):
     template_name = 'genevieve_client/public_genomereport_list.html'
 
     @staticmethod
-    def public_oh_username_sources():
-        public_data = []
+    def get_public_reports():
+        pub_reports = []
         for source in OpenHumansUser.SOURCES:
             params = {'source': source, 'limit': '1000'}
             url = OpenHumansUser.BASE_URL + '/api/public-data/'
-            public_data += requests.get(url, params=params).json()['results']
-        public_oh_username_sources = {}
-        for item in public_data:
-            username = item['user']['username']
-            source = 'openhumans-' + item['source'] + '-' + str(item['id'])
-            if username not in public_oh_username_sources:
-                public_oh_username_sources[username] = []
-            if source not in public_oh_username_sources[username]:
-                public_oh_username_sources[username].append(source)
-        return public_oh_username_sources
+            pubdata = requests.get(url, params=params).json()['results']
+            pub_usernames = [x['user']['username'] for x in pubdata]
+            pub_reports = pub_reports + list(GenomeReport.objects.filter(
+                report_source__contains=source).filter(
+                user__openhumansuser__openhumans_username__in=pub_usernames
+            ))
+        return pub_reports
 
     def get_context_data(self, **kwargs):
         context = super(PublicGenomeReportListView, self).get_context_data(
             **kwargs)
-        oh_reports = GenomeReport.objects.filter(
-            report_source__startswith='openhumans-')
-        public_username_sources = self.public_oh_username_sources()
-        public_reports = []
-        for gr in oh_reports:
-            oh_username = gr.user.openhumansuser.openhumans_username
-            if oh_username not in public_username_sources:
-                continue
-            if gr.report_source in public_username_sources[oh_username]:
-                public_reports.append(gr)
+        public_reports = self.get_public_reports()
+        shuffle(public_reports)
         context['public_reports'] = public_reports
         return context
 
