@@ -293,7 +293,7 @@ class OpenHumansUser(ConnectedUser):
             CLIENT_ID, REDIRECT_URI))
     OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
     USER_URL = BASE_URL + '/api/direct-sharing/project/exchange-member/'
-    SOURCES = ['pgp', 'twenty_three_and_me', 'vcf_data']
+    SOURCES = ['direct-sharing-128', 'pgp', 'vcf_data']
 
     def __unicode__(self):
         return self.openhumans_username
@@ -330,8 +330,9 @@ class OpenHumansUser(ConnectedUser):
 
     def make_report_name(self, username, file_info):
         SOURCE_TO_NAME = {
+            'direct-sharing-128': '23andMe',
             'pgp': 'Harvard PGP',
-            'twenty_three_and_me': '23andMe',
+            'twenty_three_and_me': '23andMe Exome',
             'dna_land': 'DNA.land',
             'genes_for_good': "Genes For Good",
             'veritas_genetics': 'Veritas Genetics',
