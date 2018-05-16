@@ -387,7 +387,7 @@ class GenomeReportDetailView(TemplateView):
         if not report_source.startswith('openhumans-'):
             return False
         oh_username = self.genomereport.user.openhumansuser.openhumans_username
-        source = re.match(r'openhumans-([^-]*)-.*$', report_source).groups()[0]
+        source = re.match(r'openhumans-(.*)-[0-9]+$', report_source).groups()[0]
         params = {'source': source, 'username': oh_username}
         public_data = requests.get(OpenHumansUser.BASE_URL + '/api/public-data/',
                                    params=params).json()['results']
