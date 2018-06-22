@@ -16,7 +16,7 @@
   Genevieve is primarily written and maintained by <a href="http://www.madpriceball.net/">
   Mad Price Ball</a>, one of the co-founders of <a href="https://openhumans.org">Open Humans</a>.
   Although it uses data from <a href="https://openhumans.org">Open Humans</a>,
-  it is a personal project, and is supported by their funding from the
+  it is a personal project. Mad's work is supported by their funding from the
   <a href="https://shuttleworthfoundation.org/">Shuttleworth Foundation</a>.
 </p>
 
@@ -38,3 +38,15 @@
 </p>
 
 {% include 'genevieve_client/partial_public_reports.html' %}
+
+<h3>Deleting and deauthorizing Genevieve</h3>
+
+<p>
+  You can go to the <a href="{% url 'manage_account' %}">account management</a>
+  page to to delete your account from this site, as well as associated genome
+  reports. While this website will no longer retain authorizations for
+  accessing Open Humans, your authorizations will still be available within
+  Open Humans itself. To remove these, you should deauthorize
+  <a href="https://www.openhumans.org/activity/genevieve-genome-report/">the
+  project in Open Humans</a>. (Do this after deleting the account here!)
+</p>

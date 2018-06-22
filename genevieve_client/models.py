@@ -357,9 +357,6 @@ class OpenHumansUser(ConnectedUser):
         Refresh genome reports or produce new ones. Only one per source.
         """
         user_data = self.get_user_data()
-
-        import json
-
         current_reports = self.get_current_ohreports_by_source()
 
         oh_sources = dict()

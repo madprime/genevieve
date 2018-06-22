@@ -196,7 +196,8 @@ class AuthorizeOpenHumansView(RedirectView):
                     user = request.user
                 else:
                     new_username = make_unique_username(
-                        base='openhumans_{}'.format(user_data['project_member_id']))
+                        base='openhumans_{}'.format(
+                            user_data['project_member_id']))
                     new_user = User(username=new_username)
                     new_user.save()
                     user = new_user
@@ -279,7 +280,8 @@ class AuthorizeGennotesView(RedirectView):
                 user = request.user
                 new_user = None
                 if not user.is_authenticated():
-                    new_username = make_unique_username(base=user_data['username'])
+                    new_username = make_unique_username(
+                        base=user_data['username'])
                     new_user = User(username=new_username,
                                     email=user_data['email'])
                     new_user.save()
@@ -297,8 +299,9 @@ class AuthorizeGennotesView(RedirectView):
                 gennotes_editor.save()
                 if new_user:
                     success_msg = (
-                        'Account created for GenNotes user "{}" and authorized '
-                        'for edit submissions.'.format(user_data['username']))
+                        'Account created for GenNotes user "{}" and '
+                        'authorized for edit submissions.'.format(
+                            user_data['username']))
                 else:
                     success_msg = ('Account connected for GenNotes user '
                                    '"{}".'.format(user_data['username']))
@@ -387,11 +390,14 @@ class GenomeReportDetailView(TemplateView):
         if not report_source.startswith('openhumans-'):
             return False
         oh_username = self.genomereport.user.openhumansuser.openhumans_username
-        source = re.match(r'openhumans-(.*)-[0-9]+$', report_source).groups()[0]
+        source = re.match(r'openhumans-(.*)-[0-9]+$',
+                          report_source).groups()[0]
         params = {'source': source, 'username': oh_username}
-        public_data = requests.get(OpenHumansUser.BASE_URL + '/api/public-data/',
-                                   params=params).json()['results']
-        if (public_data and public_data[0]['user']['username'] == oh_username and
+        public_data = requests.get(
+            OpenHumansUser.BASE_URL + '/api/public-data/',
+            params=params).json()['results']
+        if (public_data and
+                public_data[0]['user']['username'] == oh_username and
                 public_data[0]['source'] == source):
             return True
         return False
@@ -434,20 +440,19 @@ class GenomeReportDetailView(TemplateView):
                 genome_variant_list = genome_variant_list[100:]
                 gennotes_data.update({
                     res['b37_id']: res for res in
-                    requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
-                                 params={'variant_list': json.dumps(
-                                         sub_list),
-                                         'page_size': 10000}
-                                 ).json()['results']
+                    requests.get(
+                        '{}/api/variant/'.format(settings.GENNOTES_URL),
+                        params={'variant_list': json.dumps(sub_list),
+                                'page_size': 10000}).json()['results']
                     })
             else:
                 gennotes_data.update({
                     res['b37_id']: res for res in
-                    requests.get('{}/api/variant/'.format(settings.GENNOTES_URL),
-                                 params={'variant_list': json.dumps(
-                                         genome_variant_list),
-                                         'page_size': 10000}
-                                 ).json()['results']
+                    requests.get(
+                        '{}/api/variant/'.format(settings.GENNOTES_URL),
+                        params={
+                            'variant_list': json.dumps(genome_variant_list),
+                            'page_size': 10000}).json()['results']
                     })
                 genome_variant_list = []
         variants_by_freq = sorted(
@@ -491,7 +496,8 @@ class GenomeReportDetailView(TemplateView):
                                     for rcv in rcv_list}
                         item['tags']['clinvar_rcv_records'] = rcv_dict
                         item['relation_id'] = re.search(
-                            r'/api/relation/([0-9]*)/', item['url']).groups()[0]
+                            r'/api/relation/([0-9]*)/',
+                            item['url']).groups()[0]
                         gennotes_items.append(item)
             row_data['genome_variant'] = genome_variant
             row_data['variant'] = variant
@@ -625,7 +631,8 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         self.relid = kwargs['relid']
         self.effect_data = None
-        return super(GenevieveNotesEditView, self).dispatch(request, *args, **kwargs)
+        return super(GenevieveNotesEditView, self).dispatch(
+            request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -650,5 +657,6 @@ class GenevieveNotesEditView(SingleObjectMixin, TemplateView):
         else:
             self.update_genevieve_effect_relation(genevieve_effect_data)
         if 'genome_report' in request.POST:
-            return redirect('genome_report_detail', pk=request.POST['genome_report'])
+            return redirect('genome_report_detail',
+                            pk=request.POST['genome_report'])
         return redirect('home')

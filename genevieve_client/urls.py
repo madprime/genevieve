@@ -62,5 +62,6 @@ urlpatterns = [
     url(r'manage_account/$',
         ManageAccountView.as_view(),
         name='manage_account'),
-    url(r'^delete_account/', DeleteAccountView.as_view(), name='delete_account'),
+    url(r'^delete_account/', DeleteAccountView.as_view(),
+        name='delete_account'),
 ]
