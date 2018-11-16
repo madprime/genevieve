@@ -14,15 +14,18 @@ import os
 
 import dj_database_url
 from django.conf import global_settings
-from env_tools import apply_env
+import django_heroku
 
 from .utils import to_bool
 
-# Apply the environment variables in the .env file.
-apply_env()
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Check if running on Heroku. If so, force SSL.
+ON_HEROKU = os.getenv('ON_HEROKU', 'false').lower() == 'true'
+if ON_HEROKU:
+    SECURE_SSL_REDIRECT = True
+
 
 # Development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
@@ -30,7 +33,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = to_bool('DEBUG', 'false')
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = []
 
 # SECRETCODE code.
 SECRETCODE = os.getenv('SECRETCODE')
@@ -53,14 +56,6 @@ INSTALLED_APPS = (
     'allauth.account',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = [
-    # Required by 'allauth' template tags
-    'django.core.context_processors.request',
-
-    # 'allauth' specific context processors
-    'allauth.account.context_processors.account',
-] + global_settings.TEMPLATE_CONTEXT_PROCESSORS
-
 
 AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin
@@ -74,16 +69,16 @@ AUTHENTICATION_BACKENDS = [
 ] + global_settings.AUTHENTICATION_BACKENDS
 
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-)
+]
+
 
 ROOT_URLCONF = 'genevieve_client.urls'
 
@@ -177,3 +172,8 @@ OPENHUMANS_URL = os.getenv('OPENHUMANS_URL')
 
 # Genevieve settings
 GENEVIEVE_ADMIN_EMAIL = os.getenv('GENEVIEVE_ADMIN_EMAIL', '')
+
+CELERY_TASK_SERIALIZER = 'json'
+
+# Configure Django App for Heroku.
+django_heroku.settings(locals(), logging=not DEBUG, databases=not DEBUG)

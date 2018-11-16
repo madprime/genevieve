@@ -8,9 +8,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.urlresolvers import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone as django_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import SingleObjectMixin
@@ -60,7 +60,7 @@ class HomeView(TemplateView):
             'openhumans_auth_url': OpenHumansUser.AUTH_URL,
             'genomereport_list': (
                 GenomeReport.objects.filter(user=self.request.user) if
-                self.request.user.is_authenticated() else []),
+                self.request.user.is_authenticated else []),
         })
         return super(HomeView, self).get_context_data(**kwargs)
 
@@ -192,7 +192,7 @@ class AuthorizeOpenHumansView(RedirectView):
                 login(request, user)
                 messages.success(request, ('Logged in via Open Humans.'))
             except OpenHumansUser.DoesNotExist:
-                if request.user.is_authenticated():
+                if request.user.is_authenticated:
                     user = request.user
                 else:
                     new_username = make_unique_username(
@@ -279,7 +279,7 @@ class AuthorizeGennotesView(RedirectView):
             except GennotesEditor.DoesNotExist:
                 user = request.user
                 new_user = None
-                if not user.is_authenticated():
+                if not user.is_authenticated:
                     new_username = make_unique_username(
                         base=user_data['username'])
                     new_user = User(username=new_username,
@@ -338,7 +338,7 @@ class GenomeImportView(FormView):
             report_name=form.cleaned_data['report_name'])
         new_report.save()
         produce_genome_report.delay(
-            genome_report=GenomeReport.objects.get(pk=new_report.id))
+            genome_report_id=new_report.id)
         # Insert calling celery task for genome processing here.
         return super(GenomeImportView, self).form_valid(form)
 
