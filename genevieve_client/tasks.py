@@ -21,7 +21,7 @@ from vcf2clinvar.common import CHROM_INDEX, REV_CHROM_INDEX
 from vcf2clinvar.clinvar import ClinVarVCFLine
 from vcf2clinvar.genome import GenomeVCFLine
 
-from .models import Variant, GenomeVariant, CHROMOSOMES
+from .models import Variant, GenomeReport, GenomeVariant, CHROMOSOMES
 
 CHROM_MAP = {'chr' + v: k for k, v in CHROMOSOMES.items()}
 
@@ -163,11 +163,12 @@ def get_zyg(genome_vcf_line):
             return 'Het'
 
 
-@shared_task
-def produce_genome_report(genome_report, reprocess=False):
+@shared_task(task_serializer='json')
+def produce_genome_report(genome_report_id, reprocess=False):
     # Try to locally store and reuse the genome file.
     # Retrieve again if not available (e.g. due to ephemeral file storage).
-    print("Producing genome report for report ID: {}".format(genome_report.id))
+    print("Producing genome report for report ID: {}".format(genome_report_id))
+    genome_report = GenomeReport.objects.get(id=genome_report_id)
     genome_in = open_genome_file(genome_report)
     clinvar_sig = setup_clinvar_data()
 
@@ -230,6 +231,7 @@ def produce_genome_report(genome_report, reprocess=False):
     genome_report.refresh_myvariant_data()
 
 
-@shared_task
-def refresh_myvariant_data(report):
+@shared_task(task_serializer='json')
+def refresh_myvariant_data(report_id):
+    report = GenomeReport.objects.get(id=report_id)
     report.refresh_myvariant_data()

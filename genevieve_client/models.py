@@ -50,10 +50,10 @@ class Variant(models.Model):
     ref_allele = models.CharField(max_length=255)
     var_allele = models.CharField(max_length=255)
 
-    myvariant_clinvar = JSONField(default={})
-    myvariant_exac = JSONField(default={})
-    myvariant_dbsnp = JSONField(default={})
-    myvariant_gnomad_genome = JSONField(default={})
+    myvariant_clinvar = JSONField(default=dict)
+    myvariant_exac = JSONField(default=dict)
+    myvariant_dbsnp = JSONField(default=dict)
+    myvariant_gnomad_genome = JSONField(default=dict)
     myvariant_last_update = models.DateTimeField(null=True)
 
     def __unicode__(self):
@@ -112,7 +112,8 @@ class Variant(models.Model):
 
 
 class GenomeReport(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
     report_name = models.CharField(max_length=120)
     genome_file_url = models.TextField()
     genome_file_created = models.TextField()
@@ -130,9 +131,9 @@ class GenomeReport(models.Model):
         for var_data in mv_data:
             if '_id' not in var_data:
                 variant = vars_by_hgvs[var_data['query']]
-                variant.myvariant_clinvar = {}
-                variant.myvariant_exac = {}
-                variant.myvariant_dbsnp = {}
+                variant.myvariant_clinvar = dict()
+                variant.myvariant_exac = dict()
+                variant.myvariant_dbsnp = dict()
                 variant.save()
                 continue
             variant = vars_by_hgvs[var_data['_id']]
@@ -143,19 +144,19 @@ class GenomeReport(models.Model):
                     clinvar_data['rcv'] = [clinvar_data['rcv']]
                 variant.myvariant_clinvar = var_data['clinvar']
             except KeyError:
-                variant.myvariant_clivar = {}
+                variant.myvariant_clivar = dict()
             try:
                 variant.myvariant_exac = var_data['exac']
             except KeyError:
-                variant.myvariant_exac = {}
+                variant.myvariant_exac = dict()
             try:
                 variant.myvariant_dbsnp = var_data['dbsnp']
             except KeyError:
-                variant.myvariant_dbsnp = {}
+                variant.myvariant_dbsnp = dict()
             try:
                 variant.myvariant_gnomad_genome = var_data['gnomad_genome']
             except KeyError:
-                variant.myvariant_gnomad_genome = {}
+                variant.myvariant_gnomad_genome = dict()
             variant.myvariant_last_update = django_timezone.now()
             variant.save()
 
@@ -206,15 +207,15 @@ class GenomeReport(models.Model):
 
             # Delete old variants and create a new list.
             report.genomevariant_set.all().delete()
-            produce_genome_report.delay(report)
+            produce_genome_report.delay(report.id)
         else:
             from .tasks import refresh_myvariant_data
-            refresh_myvariant_data.delay(self)
+            refresh_myvariant_data.delay(self.id)
 
 
 class GenomeVariant(models.Model):
-    genome = models.ForeignKey(GenomeReport)
-    variant = models.ForeignKey(Variant)
+    genome = models.ForeignKey(GenomeReport, on_delete=models.CASCADE)
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
     zygosity = models.CharField(max_length=3,
                                 choices=(('Het', 'Heterozygous'),
                                          ('Hom', 'Homozygous'),
@@ -222,14 +223,14 @@ class GenomeVariant(models.Model):
 
 
 class GenevieveUser(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     genome_upload_enabled = models.BooleanField(default=False)
     passed_quiz = models.BooleanField(default=False)
     agreed_to_terms = models.BooleanField(default=False)
 
 
 class ConnectedUser(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     access_token = models.CharField(max_length=30, blank=True)
     refresh_token = models.CharField(max_length=30, blank=True)
     token_expiration = models.DateTimeField(null=True)
@@ -311,7 +312,7 @@ class OpenHumansUser(ConnectedUser):
         return user_data_response.json()
 
     def get_current_ohreports_by_source(self):
-        ohreports_by_source = {}
+        ohreports_by_source = dict()
         reports = GenomeReport.objects.filter(user=self.user)
         for report in reports:
             if report.report_source.startswith('openhumans-'):
@@ -403,7 +404,7 @@ class OpenHumansUser(ConnectedUser):
 
             # Avoid circular import.
             from .tasks import produce_genome_report
-            produce_genome_report.delay(new_report)
+            produce_genome_report.delay(new_report.id)
             if request:
                 messages.success(request, (
                     '"{}" started processing! Please give reports up to '
