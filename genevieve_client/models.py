@@ -385,7 +385,8 @@ class OpenHumansUser(ConnectedUser):
         for source in current_reports:
             if source in oh_sources:
                 del(oh_sources[source])
-                current_reports[source].refresh(oh_user_data=user_data)
+                current_reports[source].refresh(oh_user_data=user_data,
+                                                force=True)
             else:
                 current_reports[source].delete()
 

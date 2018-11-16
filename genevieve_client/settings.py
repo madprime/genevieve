@@ -34,6 +34,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = to_bool('DEBUG', 'false')
 ALLOWED_HOSTS = []
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 # SECRETCODE code.
 SECRETCODE = os.getenv('SECRETCODE')
