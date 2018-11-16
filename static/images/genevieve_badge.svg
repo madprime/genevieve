@@ -16,7 +16,10 @@
    id="svg6250"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="genevieve_badge.svg">
+   sodipodi:docname="genevieve_badge.svg"
+   inkscape:export-filename="/home/mad/projects/genevieve/static/images/genevieve_badge.png"
+   inkscape:export-xdpi="66.61721"
+   inkscape:export-ydpi="66.61721">
   <defs
      id="defs6252">
     <linearGradient
@@ -24,8 +27,8 @@
        inkscape:collect="always"
        xlink:href="#linearGradient5629"
        id="linearGradient5635"
-       x1="3957.9502"
-       y1="2459.645"
+       x1="4626.9966"
+       y1="2180.0903"
        x2="6453.1074"
        y2="2467.1582"
        gradientUnits="userSpaceOnUse" />
@@ -33,7 +36,7 @@
        inkscape:collect="always"
        id="linearGradient5629">
       <stop
-         style="stop-color:#fb9f00;stop-opacity:1;"
+         style="stop-color:#460064;stop-opacity:1"
          offset="0"
          id="stop5631" />
       <stop
@@ -55,7 +58,7 @@
        inkscape:collect="always"
        id="linearGradient5613">
       <stop
-         style="stop-color:#00f8fc;stop-opacity:1;"
+         style="stop-color:#27abb6;stop-opacity:1"
          offset="0"
          id="stop5615" />
       <stop
@@ -71,9 +74,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="555.87044"
-     inkscape:cy="-298.71999"
+     inkscape:zoom="1.979899"
+     inkscape:cx="340.76933"
+     inkscape:cy="322.67807"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -81,10 +84,10 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="2495"
-     inkscape:window-height="1416"
-     inkscape:window-x="65"
-     inkscape:window-y="24"
+     inkscape:window-width="3070"
+     inkscape:window-height="1752"
+     inkscape:window-x="130"
+     inkscape:window-y="48"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata6255">
