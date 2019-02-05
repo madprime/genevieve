@@ -294,8 +294,8 @@ class OpenHumansUser(ConnectedUser):
             CLIENT_ID, REDIRECT_URI))
     OPENHUMANS_PROJECTMEMBERID_URL = BASE_URL + ''
     USER_URL = BASE_URL + '/api/direct-sharing/project/exchange-member/'
-    SOURCES = ['direct-sharing-128', 'direct-sharing-131',
-               'direct-sharing-139']
+    SOURCES = ['direct-sharing-92', 'direct-sharing-128',
+               'direct-sharing-131', 'direct-sharing-139']
 
     def __unicode__(self):
         return self.openhumans_username
@@ -332,6 +332,7 @@ class OpenHumansUser(ConnectedUser):
 
     def make_report_name(self, username, file_info):
         SOURCE_TO_NAME = {
+            'direct-sharing-92': 'Imputer',
             'direct-sharing-128': '23andMe',
             'direct-sharing-139': 'Harvard PGP',
             'twenty_three_and_me': '23andMe Exome',
@@ -363,10 +364,11 @@ class OpenHumansUser(ConnectedUser):
         oh_sources = dict()
         for item in user_data['data']:
             if not ('source' in item and
-                    'basename' in item and
-                    'metadata' in item and
-                    'tags' in item['metadata'] and
-                    'vcf' in item['metadata']['tags']):
+                    'basename' in item):
+                    ### Removing this check to be compatible with Imputer
+                    # and 'metadata' in item and
+                    # 'tags' in item['metadata'] and
+                    # 'vcf' in item['metadata']['tags']):
                 continue
             if item['source'] not in self.SOURCES:
                 continue
