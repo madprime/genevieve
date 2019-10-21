@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
@@ -363,9 +364,16 @@ class PublicGenomeReportListView(TemplateView):
     def get_public_reports():
         pub_reports = []
         for source in OpenHumansUser.SOURCES:
-            params = {'source': source, 'limit': '1000'}
-            url = OpenHumansUser.BASE_URL + '/api/public-data/'
-            pubdata = requests.get(url, params=params).json()['results']
+            if not source.startswith('direct-sharing-'):
+                continue
+            cache_tag = 'public-{}'.format(source)
+            pubdata = cache.get(cache_tag)
+            if not pubdata:
+                proj_id = source.split('-')[-1]
+                url = OpenHumansUser.BASE_URL + '/api/public/datafiles/'
+                params = {'source_project_id': proj_id, 'limit': 1000}
+                pubdata = requests.get(url, params=params).json()['results']
+                cache.set(cache_tag, pubdata, 300)
             pub_usernames = [x['user']['username'] for x in pubdata]
             pub_reports = pub_reports + list(GenomeReport.objects.filter(
                 report_source__contains=source).filter(

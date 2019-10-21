@@ -25,6 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ON_HEROKU = os.getenv('ON_HEROKU', 'false').lower() == 'true'
 if ON_HEROKU:
     SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
 
 
 # Development settings - unsuitable for production
@@ -35,7 +36,6 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = to_bool('DEBUG', 'false')
 ALLOWED_HOSTS = []
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
 
 # SECRETCODE code.
 SECRETCODE = os.getenv('SECRETCODE')
@@ -110,6 +110,12 @@ WSGI_APPLICATION = 'genevieve_client.wsgi.application'
 DATABASES = {}
 DATABASES['default'] = dj_database_url.config(conn_max_age=500)
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/

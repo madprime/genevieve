@@ -77,12 +77,17 @@ class Variant(models.Model):
                 an = self.myvariant_exac['an']['an']
                 return ac * 1.0 / an
         elif self.myvariant_dbsnp:
-            for item in self.myvariant_dbsnp['alleles']:
-                try:
-                    if item['allele'] == self.var_allele:
-                        return item['freq']
-                except KeyError:
-                    continue
+            if 'alleles' not in self.myvariant_dbsnp:
+                return None
+            if type(self.myvariant_dbsnp['alleles']) == list:
+                for item in self.myvariant_dbsnp['alleles']:
+                    try:
+                        if item['allele'] == self.var_allele:
+                            return item['freq']['topmed']
+                    except KeyError:
+                        continue
+            else:
+                return self.myvariant_dbsnp['alleles']['freq']['topmed']
         return None
 
     @property
