@@ -21,7 +21,7 @@ pytz==2018.7
 requests==2.20.1
 requests-oauthlib==1.0.0
 six==1.11.0
-urllib3==1.24.1
+urllib3==1.26.5
 vcf2clinvar==0.1.5.1
 vine==1.1.4
 webencodings==0.5.1
