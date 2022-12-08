@@ -2,7 +2,7 @@ amqp==2.3.2
 billiard==3.5.0.4
 bleach==3.0.2
 celery==4.2.1
-certifi==2018.10.15
+certifi==2022.12.7
 chardet==3.0.4
 defusedxml==0.5.0
 dj-database-url==0.5.0
